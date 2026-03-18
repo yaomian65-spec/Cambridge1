@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图词消消乐 - 像素勇者英语课</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .memory-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin: 30px auto;
+            max-width: 800px;
+            perspective: 1000px;
+        }
+
+        .memory-card {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+
+        .memory-card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .memory-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border: 6px solid var(--border-color, #6B635E);
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--panel-bg, #F5F2EB);
+            box-shadow: 4px 4px 0px var(--border-color, #6B635E);
+            border-radius: 8px;
+        }
+
+        .memory-front {
+            transform: rotateY(180deg);
+            background-color: #FFFFFF;
+        }
+
+        .memory-front img {
+            width: 70%;
+            height: 70%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .memory-text {
+            font-family: var(--font-en);
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--border-color, #6B635E);
+            text-align: center;
+            padding: 10px;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .memory-back {
+            background-color: var(--secondary-accent, #DDB875);
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.05) 10px, rgba(0,0,0,0.05) 20px);
+            font-size: 40px;
+            color: var(--panel-bg, #F5F2EB);
+        }
+
+        .memory-card.matched .memory-front {
+            background-color: #E6FFFA;
+            border-color: var(--tertiary-accent, #8AAB8C);
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: rotateY(180deg) scale(1); }
+            50% { transform: rotateY(180deg) scale(1.1); }
+            100% { transform: rotateY(180deg) scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; max-width: 900px;">
+        <a href="../index.html" class="pixel-btn back-btn" style="text-decoration: none; display: inline-block;">⬅ 返回大厅</a>
+    </div>
+
+    <h1>🧩 图词雷达消消乐</h1>
+
+    <div class="pixel-panel" style="max-width: 900px;">
+        <p style="font-family: var(--font-cn); text-align: center; color: #888;">
+            找出对应的图像与英文单词！仔细听系统发出的声音！
+        </p>
+
+        <div style="text-align: center;">
+            <button class="pixel-btn submit" onclick="initMemoryGame()" style="display: inline-block; font-size: 20px;">
+                🔄 重新发牌 (DEAL CARDS)
+            </button>
+        </div>
+
+        <div class="memory-board" id="memory-board"></div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        const board = document.getElementById('memory-board');
+        let hasFlippedCard = false;
+        let lockBoard = false;
+        let firstCard, secondCard;
+        let matchedPairs = 0;
+        let totalPairs = 0;
+        let currentMatchAudio = null;
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function initMemoryGame() {
+            board.innerHTML = '';
+            hasFlippedCard = false;
+            lockBoard = false;
+            firstCard = null;
+            secondCard = null;
+            matchedPairs = 0;
+
+            const targetVocabulary = cardDatabase.filter(card => {
+                const idNum = parseInt(card.id.replace('card', ''));
+                return idNum >= 10 && idNum <= 20;
+            });
+
+            const selectedCards = shuffle([...targetVocabulary]).slice(0, 8);
+            totalPairs = selectedCards.length;
+
+            let gameCards = [];
+            selectedCards.forEach(card => {
+                gameCards.push({ ...card, displayType: 'image' });
+                gameCards.push({ ...card, displayType: 'text' });
+            });
+
+            gameCards = shuffle(gameCards);
+
+            gameCards.forEach(item => {
+                const cardElement = document.createElement('div');
+                cardElement.classList.add('memory-card');
+                cardElement.dataset.id = item.id;
+
+                let frontContent = item.displayType === 'image'
+                    ? `<img src="${item.imgSrc}" onerror="this.style.display='none'">`
+                    : `<div class="memory-text">${item.enDesc.toUpperCase()}</div>`;
+
+                cardElement.innerHTML = `
+                    <div class="memory-face memory-front">
+                        ${frontContent}
+                    </div>
+                    <div class="memory-face memory-back">?</div>
+                `;
+
+                cardElement.addEventListener('click', flipCard);
+                board.appendChild(cardElement);
+            });
+        }
+
+        function flipCard() {
+            if (lockBoard) return;
+            if (this === firstCard) return;
+
+            this.classList.add('flipped');
+
+            // 【核心修改】在此处接入音频自动播放机制
+            const cardId = this.dataset.id;
+            const cardData = cardDatabase.find(c => c.id === cardId);
+            if (cardData && cardData.audioSrc) {
+                if(currentMatchAudio) currentMatchAudio.pause(); // 防止快速点击造成声音重叠
+                currentMatchAudio = new Audio(cardData.audioSrc);
+                currentMatchAudio.play().catch(e => console.log("音频播放失败", e));
+            }
+
+            if (!hasFlippedCard) {
+                hasFlippedCard = true;
+                firstCard = this;
+                return;
+            }
+
+            secondCard = this;
+            checkForMatch();
+        }
+
+        function checkForMatch() {
+            let isMatch = firstCard.dataset.id === secondCard.dataset.id;
+            isMatch ? disableCards() : unflipCards();
+        }
+
+        function disableCards() {
+            firstCard.removeEventListener('click', flipCard);
+            secondCard.removeEventListener('click', flipCard);
+
+            firstCard.classList.add('matched');
+            secondCard.classList.add('matched');
+
+            resetBoard();
+            matchedPairs++;
+
+            if (matchedPairs === totalPairs) {
+                setTimeout(() => {
+                    alert('干得漂亮！任务完成！(MISSION CLEARED!)');
+                }, 500);
+            }
+        }
+
+        function unflipCards() {
+            lockBoard = true;
+            setTimeout(() => {
+                firstCard.classList.remove('flipped');
+                secondCard.classList.remove('flipped');
+                resetBoard();
+            }, 1000);
+        }
+
+        function resetBoard() {
+            [hasFlippedCard, lockBoard] = [false, false];
+            [firstCard, secondCard] = [null, null];
+        }
+
+        window.addEventListener('DOMContentLoaded', initMemoryGame);
+    </script>
+</body>
+</html>

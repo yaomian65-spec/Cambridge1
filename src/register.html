@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>招募勇者 - 像素勇者英语课</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div style="width: 100%; max-width: 900px;">
+        <a href="../index.html" class="pixel-btn back-btn">⬅ 返回大厅</a>
+    </div>
+
+    <h1>⚔️ 招募新勇者</h1>
+    <div class="pixel-panel">
+        <label style="font-family: var(--font-cn); font-weight: bold;">姓名 (Real Name):</label>
+        <input type="text" id="reg-name" class="pixel-input" placeholder="输入真实姓名">
+        <label style="font-family: var(--font-cn); font-weight: bold;">年龄 (Age):</label>
+        <input type="number" id="reg-age" class="pixel-input" placeholder="输入年龄">
+
+        <div style="background-color: #F0F8FF; padding: 15px; border: 4px dashed var(--border-color); margin-bottom: 20px;">
+            <h3 style="margin-top: 0; color: var(--primary-accent);">🗣️ 勇者口语测试 (Oral Test)</h3>
+            <label style="font-family: var(--font-cn); font-weight: bold; margin-top: 10px; display: block;">What's your hobbies?</label>
+            <input type="text" id="reg-hobbies" class="pixel-input" placeholder="例如: I like playing basketball.">
+
+            <label style="font-family: var(--font-cn); font-weight: bold; margin-top: 10px; display: block;">What's your favourite color?</label>
+            <input type="text" id="reg-color" class="pixel-input" placeholder="例如: My favourite color is blue.">
+
+            <label style="font-family: var(--font-cn); font-weight: bold; margin-top: 10px; display: block;">What's your favourite food?</label>
+            <input type="text" id="reg-food" class="pixel-input" placeholder="例如: I like eating pizza.">
+        </div>
+
+        <div style="border-top: 4px solid #CCC; padding-top: 20px; text-align: center;">
+            <h2>🎰 抽取身份与专属头像</h2>
+            <div style="width: 120px; height: 120px; background-color: #FFF; border: 4px solid var(--border-color); margin: 20px auto; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 4px 4px 0px rgba(0,0,0,0.1);">
+                <img id="spinner-avatar" src="../img/star.png" style="opacity: 0.2; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
+            </div>
+
+            <button id="spin-btn" class="pixel-btn submit">开始抽取 (SPIN!)</button>
+            <div id="spinner-display" class="spinner-result">???</div>
+        </div>
+        <button id="complete-reg-btn" class="pixel-btn submit hidden">确认身份并加入队伍</button>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let selectedHeroCode = "";
+        let selectedAvatar = null;
+
+        const elSpinBtn = document.getElementById('spin-btn');
+        const elSpinnerDisplay = document.getElementById('spinner-display');
+        const elSpinnerAvatar = document.getElementById('spinner-avatar');
+        const elCompleteRegBtn = document.getElementById('complete-reg-btn');
+
+        elSpinBtn.addEventListener('click', () => {
+            let spinCount = 0;
+            elSpinBtn.disabled = true;
+            elSpinnerAvatar.style.opacity = '1';
+
+            const spinInterval = setInterval(() => {
+                const av = avatars[Math.floor(Math.random() * avatars.length)];
+                elSpinnerDisplay.innerText = `${av.title} (${av.cnTitle})`;
+                elSpinnerAvatar.src = av.src;
+
+                spinCount++;
+                if (spinCount > 15) {
+                    clearInterval(spinInterval);
+                    selectedHeroCode = av.title;
+                    selectedAvatar = av;
+                    elCompleteRegBtn.classList.remove('hidden');
+                    elSpinBtn.disabled = false;
+                    elSpinBtn.innerText = "重新抽取 (RE-SPIN)";
+                }
+            }, 80);
+        });
+
+        elCompleteRegBtn.addEventListener('click', () => {
+            const nameVal = document.getElementById('reg-name').value.trim();
+            const ageVal = document.getElementById('reg-age').value.trim();
+            const hobbiesVal = document.getElementById('reg-hobbies').value.trim() || '保密';
+            const colorVal = document.getElementById('reg-color').value.trim() || '保密';
+            const foodVal = document.getElementById('reg-food').value.trim() || '保密';
+
+            if (!nameVal || !ageVal || !selectedHeroCode || !selectedAvatar) {
+                return alert("请完成必填项并抽取身份！");
+            }
+
+            const newHero = {
+                id: Date.now().toString(),
+                realName: nameVal,
+                age: ageVal,
+                hobbies: hobbiesVal,
+                color: colorVal,
+                food: foodVal,
+                heroName: selectedHeroCode,
+                avatarImg: selectedAvatar.src,
+                scores: { listening: 0, speaking: 0, vocab: 0, sentence: 0, homework: 0 }
+            };
+
+            appState.heroes.push(newHero);
+            appState.activeHeroIndex = appState.heroes.length - 1;
+            saveState();
+            window.location.href = 'dashboard.html';
+        });
+    </script>
+</body>
+</html>

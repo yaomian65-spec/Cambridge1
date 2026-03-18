@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勇者冒险日志 - 课后训练</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --font-en: 'Press Start 2P', monospace;
+            --font-cn: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --text-color: #000000;
+        }
+
+        body {
+            font-family: var(--font-en);
+            color: var(--text-color);
+            background-color: #E0E0E0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .a4-sheet {
+            background-color: #FFFFFF;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm; /* 缩减了物理边缘留白 */
+            box-sizing: border-box;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+        }
+
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+            body {
+                background-color: #FFFFFF;
+                padding: 0;
+            }
+            .a4-sheet {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                height: 100%;
+                page-break-after: always;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        h1 {
+            font-family: var(--font-cn);
+            text-align: center;
+            font-size: 24px; /* 稍微缩小标题字号 */
+            border-bottom: 4px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 20px; /* 缩减标题下方留白 */
+        }
+
+        .section-title {
+            font-family: var(--font-cn);
+            font-size: 18px;
+            background-color: #000;
+            color: #FFF;
+            padding: 5px 10px;
+            display: inline-block;
+            margin-bottom: 15px; /* 缩减板块标题留白 */
+        }
+
+        .vocab-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px; /* 缩减了网格卡片之间的间距 */
+            margin-bottom: 20px;
+        }
+
+        .vocab-item {
+            display: flex;
+            align-items: center;
+            border: 2px dashed #999;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .vocab-item img {
+            width: 65px; /* 缩小像素图片，节省垂直空间 */
+            height: 65px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            margin-right: 12px;
+            border: 2px solid #000;
+            padding: 5px;
+        }
+
+        .vocab-text {
+            flex-grow: 1;
+        }
+
+        .vocab-word {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .vocab-sentence {
+            font-family: var(--font-cn);
+            font-size: 13px;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .sentence-practice {
+            margin-top: 15px;
+        }
+
+        .practice-row {
+            margin-bottom: 15px;
+            font-family: var(--font-cn);
+            font-size: 16px;
+            line-height: 2;
+        }
+
+        .blank-line {
+            display: inline-block;
+            border-bottom: 2px solid #000;
+            width: 150px;
+            margin: 0 10px;
+        }
+
+        .pixel-btn {
+            background-color: #43B047;
+            color: #FFF;
+            font-family: var(--font-cn);
+            font-weight: bold;
+            font-size: 18px;
+            border: 4px solid #000;
+            padding: 10px 20px;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px #000;
+            text-decoration: none;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="width: 100%; max-width: 210mm; display: flex; justify-content: space-between;">
+        <a href="../index.html" class="pixel-btn" style="background-color: #E0E0E0; color: #000;">⬅ 返回大厅</a>
+        <button class="pixel-btn" onclick="window.print()">🖨️ 打印这份日志</button>
+    </div>
+
+    <div class="a4-sheet">
+        <h1>🗡️ Adventurer's Log L1 (勇者冒险日志1)</h1>
+
+        <div style="font-family: var(--font-cn); font-size: 14px; margin-bottom: 20px; display: flex; justify-content: space-between;">
+            <div>Name (勇者姓名): ___________________</div>
+            <div>Date (冒险日期): ___________________</div>
+        </div>
+
+        <div class="section-title">PART 1: 词汇图鉴 (Vocabulary)</div>
+
+        <div class="vocab-grid">
+            <div class="vocab-item">
+                <img src="../img/robot.png" alt="robot" onerror="this.style.display='none'">
+                <div class="vocab-text">
+                    <div class="vocab-word">ROBOT</div>
+                    <div class="vocab-sentence">The robot is <b>on</b> the table. </div>
+                </div>
+            </div>
+            <div class="vocab-item">
+                <img src="../img/ball.png" alt="ball" onerror="this.style.display='none'">
+                <div class="vocab-text">
+                    <div class="vocab-word">BALL</div>
+                    <div class="vocab-sentence">The ball is <b>under</b> the chair. </div>
+                </div>
+            </div>
+            <div class="vocab-item">
+                <img src="../img/kite.png" alt="kite" onerror="this.style.display='none'">
+                <div class="vocab-text">
+                    <div class="vocab-word">KITE</div>
+                    <div class="vocab-sentence">I have a beautiful kite. </div>
+                </div>
+            </div>
+            <div class="vocab-item">
+                <img src="../img/doll.png" alt="doll" onerror="this.style.display='none'">
+                <div class="vocab-text">
+                    <div class="vocab-word">DOLL</div>
+                    <div class="vocab-sentence">The doll is <b>in</b> the box. </div>
+                </div>
+            </div>
+            <div class="vocab-item">
+                <img src="../img/cupboard.png" alt="cupboard" onerror="this.style.display='none'">
+                <div class="vocab-text">
+                    <div class="vocab-word">CUPBOARD</div>
+                    <div class="vocab-sentence">Look at the big cupboard.</div>
+                </div>
+            </div>
+            <div class="vocab-item">
+                <img src="../img/bed.png" alt="bed" onerror="this.style.display='none'">
+                <div class="vocab-text">
+                    <div class="vocab-word">BED</div>
+                    <div class="vocab-sentence">The monster is <b>under</b> the bed. </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">PART 2: 句子练习 (Sentence Practice)</div>
+
+        <div class="sentence-practice">
+            <p style="font-family: var(--font-cn); font-size: 13px; color: #555; margin-bottom: 15px;">
+                任务指令：请观察你房间里的物品，使用 <b>in / on / under / next to</b>，结合你学过的单词，大声说出它们在房间里的位置，并将其中两个句子写下来。
+            </p>
+
+            <div class="practice-row">
+                1. Where is the <span class="blank-line"></span> ?<br><br>
+                It is <span class="blank-line" style="width: 60px;"></span> the <span class="blank-line"></span> .
+            </div>
+
+            <div class="practice-row" style="margin-top: 25px;">
+                2. Where is the <span class="blank-line"></span> ?<br><br>
+                It is <span class="blank-line" style="width: 60px;"></span> the <span class="blank-line"></span> .
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 20px; font-family: var(--font-en); font-size: 10px; color: #999;">
+            - SYSTEM TERMINAL : MISSION LOG GENERATED -
+        </div>
+    </div>
+</body>
+</html>

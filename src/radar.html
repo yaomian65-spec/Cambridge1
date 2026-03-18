@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>听觉雷达 - 像素勇者英语课</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 雷达游戏专属特效 */
+        .radar-board {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #222;
+            border: 8px solid var(--border-color);
+            border-radius: 15px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        .radar-card {
+            width: 180px;
+            height: 180px;
+            background-color: var(--panel-bg);
+            border: 6px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.1s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .radar-card img {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            transition: transform 0.2s;
+        }
+
+        /* 捕获成功时的视觉反馈 */
+        .radar-card.captured {
+            border-color: var(--tertiary-accent);
+            background-color: #E0FFE0;
+            transform: scale(0.9);
+            pointer-events: none; /* 防止重复点击 */
+        }
+
+        .radar-card.captured img {
+            transform: scale(1.2);
+            filter: drop-shadow(0 0 10px var(--tertiary-accent));
+        }
+
+        .radar-card:active {
+            transform: scale(0.95);
+        }
+
+        .control-panel {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; max-width: 900px;">
+        <a href="../index.html" class="pixel-btn back-btn">⬅ 返回大厅</a>
+    </div>
+
+    <h1>📡 听觉雷达寻宝</h1>
+
+    <div class="pixel-panel" style="max-width: 1000px;">
+        <p style="font-family: var(--font-cn); text-align: center; color: #555;">
+            长官发出英文指令后，立刻找出并拍击对应的目标！
+        </p>
+
+        <div class="control-panel">
+            <button class="pixel-btn submit" onclick="shuffleRadar()" style="font-size: 24px; padding: 15px 40px; display: inline-block;">
+                🔄 刷新雷达 (SHUFFLE)
+            </button>
+        </div>
+
+        <div class="radar-board" id="radar-board"></div>
+
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        const elRadarBoard = document.getElementById('radar-board');
+
+        // 洗牌算法：随机打乱数组顺序
+        function shuffleArray(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        // 刷新雷达面板
+        function shuffleRadar() {
+            elRadarBoard.innerHTML = '';
+
+            // 过滤出 ID 10 到 20 的所有教学词汇（玩具 + 家具）
+            const targetVocabulary = cardDatabase.filter(card => {
+                const idNum = parseInt(card.id.replace('card', ''));
+                return idNum >= 10 && idNum <= 20;
+            });
+
+            let shuffledCards = shuffleArray([...targetVocabulary]);
+
+            // 为了适合屏幕，我们取前 6 张卡牌作为目标
+            let targetCards = shuffledCards.slice(0, 6);
+
+            targetCards.forEach(card => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'radar-card';
+                cardDiv.onclick = function() { captureTarget(this); };
+
+                cardDiv.innerHTML = `
+                    <img src="${card.imgSrc}" alt="${card.title}" onerror="this.style.display='none'">
+                `;
+                elRadarBoard.appendChild(cardDiv);
+            });
+        }
+
+        // 拍击捕获逻辑
+        function captureTarget(element) {
+            // 触发成功捕获的 CSS 动画状态
+            element.classList.add('captured');
+
+            // 配合声音效果会更好，这里用视觉震动代替
+            setTimeout(() => {
+                element.style.opacity = '0.5';
+            }, 300);
+        }
+
+        // 页面加载时自动初始化一次雷达
+        window.addEventListener('DOMContentLoaded', shuffleRadar);
+    </script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勇者档案 - 像素勇者英语课</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div style="width: 100%; max-width: 900px;">
+        <a href="../index.html" class="pixel-btn back-btn" style="text-decoration: none; display: inline-block;">⬅ 返回大厅</a>
+    </div>
+
+    <div class="tabs-container" id="tabs-container"></div>
+
+    <div id="dashboard-module" class="pixel-panel">
+        <div class="profile-header" style="justify-content: flex-start; gap: 20px;">
+            <div style="width: 100px; height: 100px; border: 4px solid var(--border-color); display: flex; justify-content: center; align-items: center; overflow: hidden; background: #FFF; flex-shrink: 0; box-shadow: 4px 4px 0px rgba(0,0,0,0.1);">
+                <img id="display-avatar" src="" alt="avatar" style="width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
+            </div>
+
+            <div class="profile-info">
+                <h2 id="display-hero-name" style="margin: 0 0 10px 0; color: var(--primary-accent); font-family: var(--font-en); font-size: 24px;">HERO</h2>
+                <div>真实姓名: <span id="display-real-name" style="font-weight:bold;"></span> | 年龄: <span id="display-age" style="font-weight:bold;"></span></div>
+                <div style="font-size: 12px; color: #555; margin-top: 5px; line-height: 1.5;">
+                    💡 爱好: <span id="display-hobbies"></span><br>
+                    🎨 颜色: <span id="display-color"></span><br>
+                    🍔 食物: <span id="display-food"></span>
+                </div>
+            </div>
+            <div style="flex-grow: 1; text-align: right;">
+                <div style="font-family: var(--font-en); font-size: 14px; color: #555;">TOTAL XP</div>
+                <div id="display-total-score" style="font-family: var(--font-en); font-size: 32px; color: var(--secondary-accent); text-shadow: 3px 3px 0px var(--border-color);">0</div>
+            </div>
+        </div>
+
+        <h2 style="margin-top: 30px;">🏅 核心能力徽章解锁</h2>
+        <p style="font-family: var(--font-cn); text-align: center; color: #555; font-size: 14px;">规则：每得 5 分获取 1 颗星星。只要获得 1 颗星即可点亮神器图像！</p>
+
+        <div class="modules-grid" id="modules-container"></div>
+
+        <div style="text-align: right; margin-top: 40px; border-top: 4px dashed #CCC; padding-top: 20px;">
+            <button onclick="removeCurrentHero()" class="pixel-btn danger">让此勇者退役 (REMOVE)</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            if (appState.heroes.length === 0) {
+                alert("当前没有勇者，请先前往招募中心！");
+                window.location.href = 'register.html';
+                return;
+            }
+            if (appState.activeHeroIndex === -1) appState.activeHeroIndex = 0;
+
+            const currentHero = appState.heroes[appState.activeHeroIndex];
+            if (currentHero.scores && typeof currentHero.scores.writing !== 'undefined') {
+                delete currentHero.scores.writing;
+                saveState();
+            }
+
+            renderTabs();
+            renderDashboard();
+        });
+
+        function renderTabs() {
+            const container = document.getElementById('tabs-container');
+            container.innerHTML = '';
+            appState.heroes.forEach((hero, index) => {
+                const tab = document.createElement('div');
+                tab.className = 'hero-tab' + (appState.activeHeroIndex === index ? ' active' : '');
+                tab.innerText = hero.realName;
+                tab.onclick = () => {
+                    appState.activeHeroIndex = index;
+                    saveState();
+                    renderTabs();
+                    renderDashboard();
+                };
+                container.appendChild(tab);
+            });
+        }
+
+        function renderDashboard() {
+            const hero = appState.heroes[appState.activeHeroIndex];
+            if(!hero) return;
+
+            document.getElementById('display-hero-name').innerText = hero.heroName;
+            document.getElementById('display-real-name').innerText = hero.realName;
+            document.getElementById('display-age').innerText = hero.age;
+            document.getElementById('display-hobbies').innerText = hero.hobbies || '未知';
+            document.getElementById('display-color').innerText = hero.color || '未知';
+            document.getElementById('display-food').innerText = hero.food || '未知';
+            document.getElementById('display-avatar').src = hero.avatarImg || '../img/star.png';
+
+            let totalXP = 0;
+            if(hero.scores) {
+                totalXP = Object.values(hero.scores).reduce((a, b) => a + b, 0);
+            }
+            document.getElementById('display-total-score').innerText = totalXP;
+
+            const container = document.getElementById('modules-container');
+            container.innerHTML = '';
+
+            modulesDef.forEach(mod => {
+                let pts = hero.scores ? (hero.scores[mod.id] || 0) : 0;
+                let totalStars = Math.floor(pts / 5);
+                if (totalStars > 9) totalStars = 9;
+
+                let cardsHtml = "";
+                for(let level = 1; level <= 3; level++) {
+                    const reward = mod.rewards[level - 1];
+                    let starsForThisCard = Math.max(0, Math.min(3, totalStars - (level - 1) * 3));
+                    let starStr = "";
+                    for(let i=0; i<3; i++) {
+                        starStr += (i < starsForThisCard) ? "★" : "☆";
+                    }
+
+                    // 【核心修改】只要有1颗星，就解锁图文
+                    let isUnlocked = (starsForThisCard >= 1);
+                    let displayNameCN = isUnlocked ? reward.cn : "???";
+                    let displayNameEN = isUnlocked ? reward.en : "???";
+
+                    cardsHtml += `
+                        <div style="flex: 1; background-color: #EFEFEF; border: 3px solid var(--border-color); border-radius: 6px; padding: 6px; box-sizing: border-box; display: flex; flex-direction: column;">
+                            <div style="width: 100%; aspect-ratio: 1/1; background-color: #FFFFFF; border: 2px solid var(--border-color); border-radius: 4px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden;">
+                                <div style="position: absolute; top: 4px; right: 4px; color: var(--secondary-accent); font-size: 14px; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; z-index: 2; letter-spacing: 1px;">
+                                    ${starStr}
+                                </div>
+                                ${isUnlocked
+                                    ? `<img src="${reward.img}" onerror="this.style.display='none'" style="width: 85%; height: 85%; object-fit: contain; image-rendering: pixelated; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">`
+                                    : `<div style="font-size: 40px; color: #CCC; font-family: var(--font-en);">?</div>`
+                                }
+                            </div>
+                            <div style="text-align: center; margin-top: 8px;">
+                                <div style="font-family: var(--font-cn); font-size: 14px; font-weight: bold; color: var(--border-color);">${displayNameCN}</div>
+                                <div style="font-family: var(--font-en); font-size: 9px; color: #555; margin-top: 4px; line-height: 1.2;">${displayNameEN}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const modCard = document.createElement('div');
+                modCard.className = 'module-card';
+                modCard.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #CCC; padding-bottom: 10px; margin-bottom: 15px;">
+                        <h3 style="margin:0; font-family: var(--font-cn); font-size: 20px; color: var(--border-color);">
+                            ${mod.icon} ${mod.name} <span style="font-family: var(--font-en); font-size: 14px; color: #555;">${mod.enName}</span>
+                        </h3>
+                        <div style="text-align: right; font-family: var(--font-en); font-size: 14px; color: var(--border-color);">
+                            <div>${pts} XP</div>
+                            <button onclick="addPoint('${mod.id}')" style="background-color: var(--secondary-accent); color: #111; border: 3px solid var(--border-color); font-weight: bold; cursor: pointer; padding: 5px 10px; margin-top: 5px; box-shadow: 2px 2px 0px var(--border-color);">+5 分</button>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: space-between;">
+                        ${cardsHtml}
+                    </div>
+                `;
+                container.appendChild(modCard);
+            });
+        }
+
+        window.addPoint = function(modId) {
+            const hero = appState.heroes[appState.activeHeroIndex];
+            if(!hero.scores) hero.scores = { listening: 0, speaking: 0, vocab: 0, sentence: 0, homework: 0 };
+            hero.scores[modId] += 5;
+            saveState();
+            renderDashboard();
+        };
+
+        window.removeCurrentHero = function() {
+            if(confirm('确定要让该勇者退役并删除数据吗？')) {
+                appState.heroes.splice(appState.activeHeroIndex, 1);
+                appState.activeHeroIndex = appState.heroes.length > 0 ? 0 : -1;
+                saveState();
+                if (appState.heroes.length === 0) {
+                    window.location.href = 'index.html';
+                } else {
+                    renderTabs();
+                    renderDashboard();
+                }
+            }
+        };
+    </script>
+</body>
+</html>

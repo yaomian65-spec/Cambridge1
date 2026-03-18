@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密室寻宝 - 像素勇者英语课</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .treasure-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 30px auto;
+            max-width: 600px;
+        }
+
+        .treasure-box {
+            background-color: #8B4513;
+            border: 6px solid var(--border-color, #6B635E);
+            box-shadow: inset -4px -4px 0px rgba(0,0,0,0.3), 4px 4px 0px var(--border-color, #6B635E);
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: var(--secondary-accent, #DDB875);
+            cursor: pointer;
+            transition: all 0.1s;
+            position: relative;
+            border-radius: 8px;
+        }
+
+        .treasure-box:active {
+            transform: translate(4px, 4px);
+            box-shadow: inset -4px -4px 0px rgba(0,0,0,0.3), 0px 0px 0px var(--border-color);
+        }
+
+        .treasure-box.open {
+            background-color: #DEB887;
+            cursor: default;
+            color: transparent;
+            box-shadow: inset 4px 4px 0px rgba(0,0,0,0.2), 4px 4px 0px var(--border-color);
+        }
+
+        .treasure-box img {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            position: absolute;
+            display: none;
+            z-index: 2;
+        }
+
+        .treasure-box.open img {
+            display: block;
+            animation: popUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .treasure-box.wrong {
+            background-color: #A0AEC0;
+            color: #718096;
+            box-shadow: inset -4px -4px 0px rgba(0,0,0,0.1), 4px 4px 0px var(--border-color);
+        }
+
+        .treasure-box.wrong::after {
+            content: 'X';
+            position: absolute;
+            color: var(--primary-accent, #D98C85);
+            font-size: 60px;
+            font-family: var(--font-en);
+            display: block;
+            animation: popUp 0.2s ease-out;
+        }
+
+        @keyframes popUp {
+            0% { transform: translateY(20px) scale(0); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .target-display {
+            background-color: var(--panel-bg, #F5F2EB);
+            border: 4px solid var(--border-color, #6B635E);
+            padding: 15px;
+            margin: 20px auto;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            border-radius: 8px;
+        }
+
+        .target-display img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .target-text {
+            color: var(--border-color, #6B635E);
+            font-size: 20px;
+            font-family: var(--font-en);
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; max-width: 900px;">
+        <a href="../index.html" class="pixel-btn back-btn" style="text-decoration: none; display: inline-block;">⬅ 返回大厅</a>
+    </div>
+
+    <h1>🗝️ 密室寻宝</h1>
+
+    <div class="pixel-panel" style="max-width: 900px;">
+        <p style="font-family: var(--font-cn); text-align: center; color: #888;">
+            一人闭眼，一人偷看线索。然后用英语互相提问寻找宝藏！
+        </p>
+
+        <div class="target-display" id="target-display">
+            <span class="target-text">TARGET:</span>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button class="pixel-btn submit" onclick="startNewRound()" style="display: inline-block; font-size: 20px;">
+                🔄 藏匿宝藏 (HIDE)
+            </button>
+            <button class="pixel-btn" id="peek-btn" onclick="peekClue()" style="display: inline-block; font-size: 20px; background-color: #8AAB8C; color: #FFF;">
+                👁️ 偷看线索 (PEEK)
+            </button>
+        </div>
+
+        <div class="treasure-board" id="treasure-board">
+            <div class="treasure-box" onclick="openBox(0, this)">1</div>
+            <div class="treasure-box" onclick="openBox(1, this)">2</div>
+            <div class="treasure-box" onclick="openBox(2, this)">3</div>
+            <div class="treasure-box" onclick="openBox(3, this)">4</div>
+            <div class="treasure-box" onclick="openBox(4, this)">5</div>
+            <div class="treasure-box" onclick="openBox(5, this)">6</div>
+        </div>
+    </div>
+
+    <script src="../app.js"></script>
+    <script>
+        let currentTarget = null;
+        let winningBoxIndex = -1;
+        let isGameActive = false;
+
+        function startNewRound() {
+            const boxes = document.querySelectorAll('.treasure-box');
+            boxes.forEach((box, index) => {
+                box.className = 'treasure-box';
+                box.innerHTML = `${index + 1}`;
+            });
+
+            // 严格过滤出 ID 为 10 到 15 的 6 个玩具类目标词汇作为宝藏
+            const targetVocabulary = cardDatabase.filter(card => {
+                const idNum = parseInt(card.id.replace('card', ''));
+                return idNum >= 10 && idNum <= 15;
+            });
+
+            const randomIndex = Math.floor(Math.random() * targetVocabulary.length);
+            currentTarget = targetVocabulary[randomIndex];
+            winningBoxIndex = Math.floor(Math.random() * 6);
+
+            const targetDisplay = document.getElementById('target-display');
+            targetDisplay.innerHTML = `
+                <span class="target-text">TARGET:</span>
+                <img src="${currentTarget.imgSrc}" alt="${currentTarget.title}" onerror="this.style.display='none'">
+                <span class="target-text" style="color: var(--border-color); font-size: 16px; font-weight: bold;">${currentTarget.enDesc.toUpperCase()}</span>
+            `;
+
+            isGameActive = true;
+            document.getElementById('peek-btn').disabled = false;
+        }
+
+        function peekClue() {
+            if (!isGameActive || winningBoxIndex === -1) return;
+
+            const boxes = document.querySelectorAll('.treasure-box');
+            const winBox = boxes[winningBoxIndex];
+
+            winBox.classList.add('open');
+            winBox.innerHTML = `<img src="${currentTarget.imgSrc}">`;
+
+            const peekBtn = document.getElementById('peek-btn');
+            peekBtn.disabled = true;
+
+            setTimeout(() => {
+                winBox.classList.remove('open');
+                winBox.innerHTML = `${winningBoxIndex + 1}`;
+                peekBtn.disabled = false;
+            }, 2000);
+        }
+
+        function openBox(index, element) {
+            if (!isGameActive) {
+                alert("请先点击'藏匿宝藏'开始新一轮！");
+                return;
+            }
+            if (element.classList.contains('open') || element.classList.contains('wrong')) return;
+
+            if (index === winningBoxIndex) {
+                element.classList.add('open');
+                element.innerHTML = `<img src="${currentTarget.imgSrc}">`;
+                isGameActive = false;
+                setTimeout(() => alert("宝藏被找到了！(TREASURE FOUND!)"), 300);
+            } else {
+                element.classList.add('wrong');
+                element.innerHTML = '';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', startNewRound);
+    </script>
+</body>
+</html>

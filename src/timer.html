@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极限挑战 - 像素勇者英语课</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div style="width: 100%; max-width: 900px;">
+        <a href="../index.html" class="pixel-btn back-btn">⬅ 返回大厅</a>
+    </div>
+
+    <h1>⏱️ 极限反应指令场</h1>
+
+    <div class="pixel-panel">
+        <p style="font-family: var(--font-cn); text-align: center; color: #555;">在倒计时结束前，大声喊出正确的英语指令！</p>
+
+        <div class="timer-display-container">
+            <div id="timer-digits" class="timer-digits">10.0</div>
+        </div>
+
+        <div class="timer-controls">
+            <button class="pixel-btn time-adjust-btn" onclick="adjustTime(-1)">-1秒</button>
+            <button class="pixel-btn time-adjust-btn" onclick="setTimer(5)">5秒</button>
+            <button class="pixel-btn time-adjust-btn" onclick="setTimer(10)">10秒</button>
+            <button class="pixel-btn time-adjust-btn" onclick="setTimer(15)">15秒</button>
+            <button class="pixel-btn time-adjust-btn" onclick="adjustTime(1)">+1秒</button>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button id="start-timer-btn" class="pixel-btn submit" style="font-size: 28px; padding: 20px 40px;" onclick="startTimer()">开始 (GO!)</button>
+            <button id="stop-timer-btn" class="pixel-btn danger hidden" style="font-size: 28px; padding: 20px 40px;" onclick="stopTimer()">停止并结算</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let defaultTime = 10.0;
+        let currentTime = 10.0;
+        let timerInterval = null;
+        let isTimerRunning = false;
+
+        const elTimerDigits = document.getElementById('timer-digits');
+        const btnStartTimer = document.getElementById('start-timer-btn');
+        const btnStopTimer = document.getElementById('stop-timer-btn');
+
+        function setTimer(seconds) {
+            if(isTimerRunning) return;
+            defaultTime = seconds;
+            resetTimerDisplay();
+        }
+
+        function adjustTime(seconds) {
+            if(isTimerRunning) return;
+            defaultTime += seconds;
+            if(defaultTime < 1) defaultTime = 1;
+            resetTimerDisplay();
+        }
+
+        function resetTimerDisplay() {
+            currentTime = defaultTime;
+            updateTimerUI();
+            elTimerDigits.classList.remove('warning', 'danger');
+        }
+
+        function updateTimerUI() {
+            elTimerDigits.innerText = currentTime.toFixed(1);
+            if (currentTime <= 3.0 && currentTime > 0) {
+                elTimerDigits.classList.add('danger');
+                elTimerDigits.classList.remove('warning');
+            } else if (currentTime <= defaultTime / 2 && currentTime > 0) {
+                elTimerDigits.classList.add('warning');
+            } else {
+                elTimerDigits.classList.remove('warning', 'danger');
+            }
+        }
+
+        function startTimer() {
+            if(isTimerRunning) return;
+            isTimerRunning = true;
+            btnStartTimer.classList.add('hidden');
+            btnStopTimer.classList.remove('hidden');
+
+            timerInterval = setInterval(() => {
+                currentTime -= 0.1;
+                if(currentTime <= 0) {
+                    currentTime = 0;
+                    stopTimer();
+                    elTimerDigits.innerText = "0.0";
+                    setTimeout(() => alert("时间到！(TIME'S UP!)"), 100);
+                } else {
+                    updateTimerUI();
+                }
+            }, 100);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            btnStartTimer.classList.remove('hidden');
+            btnStopTimer.classList.add('hidden');
+            updateTimerUI();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>装备认知营 - 像素勇者英语课</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .mode-switch {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .mode-btn {
+            background-color: #E0E0E0;
+            color: var(--border-color);
+            border: 4px solid var(--border-color);
+            padding: 15px 30px;
+            font-family: var(--font-cn);
+            font-size: 22px;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px var(--border-color);
+            transition: all 0.1s;
+        }
+
+        .mode-btn.active {
+            background-color: var(--secondary-accent);
+            color: var(--border-color);
+            box-shadow: 0px 0px 0px var(--border-color);
+            transform: translate(4px, 4px);
+        }
+
+        /* 单张大闪卡样式 */
+        .flashcard-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+        }
+
+        .flashcard {
+            background-color: #FAFAFA;
+            border: 6px solid var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 8px 8px 0px var(--border-color);
+            transition: transform 0.1s, background-color 0.2s;
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+        }
+
+        .flashcard:active {
+            transform: translate(4px, 4px);
+            box-shadow: 4px 4px 0px var(--border-color);
+        }
+
+        .flashcard.playing {
+            background-color: #E6FFFA;
+            border-color: var(--tertiary-accent);
+        }
+
+        .flashcard-img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            margin-bottom: 25px;
+            transition: transform 0.2s;
+        }
+
+        .flashcard.playing .flashcard-img {
+            transform: scale(1.1);
+        }
+
+        .flashcard-en {
+            font-family: var(--font-en);
+            font-size: 36px;
+            color: var(--primary-accent);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .flashcard-cn {
+            font-family: var(--font-cn);
+            font-size: 28px;
+            color: var(--border-color);
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+
+        /* 强制隐藏中文时的样式 */
+        .flashcard-cn.invisible {
+            opacity: 0;
+        }
+
+        .nav-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        /* 闯关模式专属界面 */
+        .challenge-container {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .question-box {
+            background-color: #F0F8FF;
+            border: 4px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 25px;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .option-btn {
+            background-color: #FFF;
+            border: 4px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: var(--font-cn);
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .option-btn img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .option-btn:hover { background-color: #EFEFEF; }
+        .option-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px var(--border-color); }
+
+        .option-btn.correct { background-color: var(--tertiary-accent); color: #FFF; }
+        .option-btn.wrong { background-color: var(--primary-accent); color: #FFF; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; max-width: 900px;">
+        <a href="../index.html" class="pixel-btn back-btn" style="text-decoration: none; display: inline-block;">⬅ 返回大厅</a>
+    </div>
+
+    <h1>🔈 装备认知与实战营</h1>
+
+    <div class="pixel-panel" style="max-width: 900px;">
+        <div class="mode-switch">
+            <button id="btn-mode-learn" class="mode-btn active" onclick="switchMode('learn')">📚 认识模式</button>
+            <button id="btn-mode-challenge" class="mode-btn" onclick="switchMode('challenge')">⚔️ 闯关模式</button>
+        </div>
+
+        <div id="view-learn" class="flashcard-container">
+            <p style="font-family: var(--font-cn); text-align: center; color: #555; font-size: 16px; margin-bottom: 15px;">
+                先看图和英文自己拼读，然后点击卡牌对答案！
+            </p>
+
+            <div id="flashcard" class="flashcard" onclick="playCurrentAudioAndReveal()">
+                <img id="fc-img" src="" class="flashcard-img" onerror="this.style.display='none'">
+                <div id="fc-en" class="flashcard-en">WORD</div>
+                <div id="fc-cn" class="flashcard-cn invisible">中文</div>
+            </div>
+
+            <div class="nav-controls">
+                <button class="pixel-btn" onclick="prevCard()" style="font-size: 18px;">⬅ 上一个</button>
+                <button class="pixel-btn submit" onclick="nextCard()" style="margin: 0; font-size: 18px;">下一个 ➡</button>
+            </div>
+        </div>
+
+        <div id="view-challenge" class="hidden challenge-container">
+            <div id="quiz-intro">
+                <p style="font-family: var(--font-cn); color: #555; font-size: 18px;">
+                    系统将对你进行“听音辨物”与“看词发音”的交叉测试。<br>准备好接受挑战了吗？
+                </p>
+                <button class="pixel-btn submit" onclick="startChallenge()" style="font-size: 24px; padding: 15px 40px;">开始挑战 (START)</button>
+            </div>
+
+            <div id="quiz-area" class="hidden">
+                <div style="font-family: var(--font-en); font-size: 18px; color: var(--secondary-accent); margin-bottom: 10px; text-shadow: 1px 1px 0px #000;">
+                    SCORE: <span id="score-display">0</span> / 10
+                </div>
+
+                <div class="question-box" id="question-box"></div>
+                <div class="options-grid" id="options-grid"></div>
+
+                <button id="next-btn" class="pixel-btn submit hidden" onclick="nextQuestion()">下一题 (NEXT) ➡</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let vocabList = [];
+        let currentAudio = null;
+        let currentLearnIndex = 0;
+
+        let quizQuestions = [];
+        let currentQIndex = 0;
+        let score = 0;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            vocabList = cardDatabase.filter(card => {
+                const idNum = parseInt(card.id.replace('card', ''));
+                return idNum >= 10 && idNum <= 20;
+            });
+
+            // 过滤掉没有配置音频的非法卡牌
+            vocabList = vocabList.filter(card => card.audioSrc);
+
+            if(vocabList.length > 0) {
+                renderFlashcard();
+            }
+        });
+
+        function switchMode(mode) {
+            if(currentAudio) { currentAudio.pause(); }
+
+            const btnLearn = document.getElementById('btn-mode-learn');
+            const btnChallenge = document.getElementById('btn-mode-challenge');
+            const viewLearn = document.getElementById('view-learn');
+            const viewChallenge = document.getElementById('view-challenge');
+
+            if (mode === 'learn') {
+                btnLearn.classList.add('active');
+                btnChallenge.classList.remove('active');
+                viewLearn.classList.remove('hidden');
+                viewChallenge.classList.add('hidden');
+            } else {
+                btnLearn.classList.remove('active');
+                btnChallenge.classList.add('active');
+                viewLearn.classList.add('hidden');
+                viewChallenge.classList.remove('hidden');
+                document.getElementById('quiz-intro').classList.remove('hidden');
+                document.getElementById('quiz-area').classList.add('hidden');
+            }
+        }
+
+        // ================= 认识模式：单卡轮播逻辑 =================
+        function renderFlashcard() {
+            const card = vocabList[currentLearnIndex];
+            document.getElementById('fc-img').src = card.imgSrc;
+            document.getElementById('fc-en').innerText = card.enDesc;
+
+            const cnDisplay = document.getElementById('fc-cn');
+            cnDisplay.innerText = card.title;
+            // 每次切换卡牌，强制将中文透明化，制造悬念
+            cnDisplay.classList.add('invisible');
+        }
+
+        function playCurrentAudioAndReveal() {
+            const card = vocabList[currentLearnIndex];
+            const fcElement = document.getElementById('flashcard');
+            const cnDisplay = document.getElementById('fc-cn');
+
+            // 移除隐藏类，揭晓中文释义
+            cnDisplay.classList.remove('invisible');
+
+            if(currentAudio) currentAudio.pause();
+            fcElement.classList.add('playing');
+            currentAudio = new Audio(card.audioSrc); // 直接读取底层的 audioSrc
+            currentAudio.play().catch(e => console.log("音频播放失败:", e));
+
+            currentAudio.onended = () => {
+                fcElement.classList.remove('playing');
+            };
+        }
+
+        function prevCard() {
+            if(currentAudio) currentAudio.pause();
+            document.getElementById('flashcard').classList.remove('playing');
+            currentLearnIndex = (currentLearnIndex - 1 + vocabList.length) % vocabList.length;
+            renderFlashcard();
+        }
+
+        function nextCard() {
+            if(currentAudio) currentAudio.pause();
+            document.getElementById('flashcard').classList.remove('playing');
+            currentLearnIndex = (currentLearnIndex + 1) % vocabList.length;
+            renderFlashcard();
+        }
+
+        // ================= 闯关模式逻辑 =================
+        function startChallenge() {
+            document.getElementById('quiz-intro').classList.add('hidden');
+            document.getElementById('quiz-area').classList.remove('hidden');
+            score = 0;
+            currentQIndex = 0;
+            document.getElementById('score-display').innerText = score;
+            generateQuestions();
+            renderQuestion();
+        }
+
+        function shuffle(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        function generateQuestions() {
+            quizQuestions = [];
+            for(let i=0; i<10; i++) {
+                const targetCard = vocabList[Math.floor(Math.random() * vocabList.length)];
+                const type = Math.random() > 0.5 ? 'listen' : 'speak';
+                quizQuestions.push({ target: targetCard, type: type });
+            }
+        }
+
+        function renderQuestion() {
+            const q = quizQuestions[currentQIndex];
+            const box = document.getElementById('question-box');
+            const grid = document.getElementById('options-grid');
+            const nextBtn = document.getElementById('next-btn');
+
+            box.innerHTML = '';
+            grid.innerHTML = '';
+            nextBtn.classList.add('hidden');
+
+            if (q.type === 'listen') {
+                box.innerHTML = `
+                    <div style="font-size: 60px; margin-bottom: 10px;">👂</div>
+                    <div style="font-family: var(--font-cn); font-size: 24px; color: var(--border-color);">点击播放音频，并选择正确的物品</div>
+                    <button class="pixel-btn" onclick="playQuestionAudio('${q.target.audioSrc}')" style="margin-top: 15px; background-color: var(--secondary-accent); color: #111;">🔊 播放音频</button>
+                `;
+                playQuestionAudio(q.target.audioSrc);
+
+                let options = [q.target];
+                let availableWrong = vocabList.filter(c => c.id !== q.target.id);
+                availableWrong = shuffle(availableWrong);
+                options.push(availableWrong[0], availableWrong[1], availableWrong[2]);
+                options = shuffle(options);
+
+                options.forEach(opt => {
+                    const btn = document.createElement('div');
+                    btn.className = 'option-btn';
+                    btn.innerHTML = `
+                        <img src="${opt.imgSrc}" onerror="this.style.display='none'">
+                        <span>${opt.title}</span>
+                    `;
+                    btn.onclick = () => handleAnswer(btn, opt.id === q.target.id);
+                    grid.appendChild(btn);
+                });
+
+            } else {
+                box.innerHTML = `
+                    <div style="font-family: var(--font-cn); font-size: 22px; color: var(--border-color); margin-bottom: 20px;">看着图片，大声念出它的英文！</div>
+                    <img src="${q.target.imgSrc}" style="width: 120px; height: 120px; object-fit: contain; image-rendering: pixelated; margin-bottom: 15px;">
+                    <div style="font-family: var(--font-en); font-size: 32px; color: var(--primary-accent); text-transform: uppercase;">${q.target.enDesc}</div>
+                `;
+
+                grid.innerHTML = `
+                    <div style="grid-column: span 2; text-align: center;">
+                        <button class="pixel-btn submit" style="font-size: 20px; padding: 15px 30px; width: 80%; max-width: 300px;" onclick="revealAudioAnswer('${q.target.audioSrc}')">我念完了，核对发音！</button>
+                    </div>
+                `;
+            }
+        }
+
+        function playQuestionAudio(path) {
+            if(currentAudio) currentAudio.pause();
+            currentAudio = new Audio(path);
+            currentAudio.play().catch(e => console.log("音频播放失败", e));
+        }
+
+        function handleAnswer(btnEl, isCorrect) {
+            const allBtns = document.querySelectorAll('.option-btn');
+            allBtns.forEach(b => b.style.pointerEvents = 'none');
+
+            if (isCorrect) {
+                btnEl.classList.add('correct');
+                score++;
+                document.getElementById('score-display').innerText = score;
+                playQuestionAudio(quizQuestions[currentQIndex].target.audioSrc);
+            } else {
+                btnEl.classList.add('wrong');
+                allBtns.forEach(b => {
+                    if (b.innerHTML.includes(quizQuestions[currentQIndex].target.title)) {
+                        b.classList.add('correct');
+                    }
+                });
+            }
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        function revealAudioAnswer(path) {
+            playQuestionAudio(path);
+
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = `
+                <div style="grid-column: span 2; text-align: center; font-family: var(--font-cn); font-size: 20px; margin-bottom: 10px; color: var(--border-color);">
+                    你的发音和标准音频一样吗？请诚实评判：
+                </div>
+                <button class="pixel-btn" style="background-color: var(--tertiary-accent); color: white;" onclick="selfGrade(true)">🟢 念对了</button>
+                <button class="pixel-btn danger" onclick="selfGrade(false)">🔴 还需要练习</button>
+            `;
+        }
+
+        function selfGrade(isCorrect) {
+            if (isCorrect) {
+                score++;
+                document.getElementById('score-display').innerText = score;
+            }
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            currentQIndex++;
+            if (currentQIndex < quizQuestions.length) {
+                renderQuestion();
+            } else {
+                endQuiz();
+            }
+        }
+
+        function endQuiz() {
+            const box = document.getElementById('question-box');
+            const grid = document.getElementById('options-grid');
+            document.getElementById('next-btn').classList.add('hidden');
+            grid.innerHTML = '';
+
+            let evaluation = "";
+            if (score >= 8) evaluation = "🏆 完美解码！你的神经回路已经极其稳固！";
+            else if (score >= 5) evaluation = "👍 干得不错！继续练习强化突触连接！";
+            else evaluation = "💪 别灰心！回到认识模式重新建立语义网络吧！";
+
+            box.innerHTML = `
+                <h2 style="color: var(--tertiary-accent);">挑战结束！</h2>
+                <div style="font-family: var(--font-en); font-size: 40px; margin: 20px 0; color: var(--primary-accent);">FINAL SCORE: ${score} / 10</div>
+                <div style="font-family: var(--font-cn); font-size: 18px; color: var(--border-color); text-align: center;">${evaluation}</div>
+                <button class="pixel-btn submit" style="margin-top: 30px;" onclick="startChallenge()">🔄 再次挑战</button>
+            `;
+        }
+    </script>
+</body>
+</html>
