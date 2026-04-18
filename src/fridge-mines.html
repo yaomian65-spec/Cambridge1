@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冰箱扫雷对战 - 像素勇者英语课</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .hud {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .panel {
+            border: 3px solid var(--border-color);
+            background: #FFF;
+            padding: 10px;
+            text-align: center;
+            font-family: var(--font-cn);
+        }
+
+        .turn-box {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-accent);
+        }
+
+        .score-line {
+            font-family: var(--font-en);
+            font-size: 12px;
+            color: #333;
+            margin-top: 4px;
+        }
+
+        .credit-line {
+            font-family: var(--font-en);
+            font-size: 12px;
+            color: #1E40AF;
+            margin-top: 4px;
+        }
+
+        .learn-panel {
+            border: 4px solid var(--border-color);
+            background: #FFF;
+            box-shadow: 5px 5px 0 var(--border-color);
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+
+        .learn-title {
+            font-family: var(--font-cn);
+            text-align: center;
+            color: var(--primary-accent);
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .learn-body {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .learn-image {
+            width: 300px;
+            height: 300px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            margin: 0 auto;
+            display: block;
+            border: 3px dashed #CBD5E1;
+            background: #F8FAFC;
+            padding: 8px;
+        }
+
+        .learn-options {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(130px, 1fr));
+            gap: 8px;
+        }
+
+        .learn-word {
+            font-family: var(--font-en);
+            text-align: center;
+            margin: 6px 0;
+            font-size: 20px;
+            color: #1F2937;
+        }
+
+        @media (max-width: 900px) {
+            .learn-body {
+                grid-template-columns: 1fr;
+            }
+
+            .game-stage {
+                grid-template-columns: 1fr;
+            }
+
+            .game-right {
+                position: static;
+            }
+        }
+
+        .sentence-box {
+            margin-bottom: 14px;
+            border: 4px dashed var(--border-color);
+            background: #FAFAFA;
+            padding: 12px;
+            text-align: center;
+            font-family: var(--font-cn);
+            font-size: 20px;
+            min-height: 62px;
+        }
+
+        .qa-panel {
+            margin-bottom: 14px;
+            border: 4px solid var(--border-color);
+            background: #FFF;
+            box-shadow: 4px 4px 0 var(--border-color);
+            padding: 12px;
+        }
+
+        .qa-prompt {
+            font-family: var(--font-cn);
+            font-size: 18px;
+            text-align: center;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+
+        .qa-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .qa-options .pixel-btn {
+            width: 100%;
+            font-family: var(--font-cn);
+            font-size: 30px;
+            font-weight: 700;
+            line-height: 1.45;
+            padding: 12px;
+            text-transform: none;
+        }
+
+        .game-stage {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 14px;
+            align-items: start;
+            margin-top: 10px;
+        }
+
+        .game-right {
+            border: 4px solid var(--border-color);
+            background: #FFF;
+            box-shadow: 4px 4px 0 var(--border-color);
+            padding: 10px;
+            position: sticky;
+            top: 10px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .cell {
+            border: 4px solid var(--border-color);
+            background: #EEF2FF;
+            height: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-en);
+            font-size: 22px;
+            cursor: pointer;
+            box-shadow: 4px 4px 0 var(--border-color);
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cell:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 var(--border-color);
+        }
+
+        .cell.locked {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .cell.opened {
+            background: #FFF;
+            cursor: default;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .cell img {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .mine-mark {
+            color: #B00020;
+            font-size: 48px;
+            font-family: var(--font-en);
+        }
+
+        .bottom-tools {
+            margin-top: 16px;
+            text-align: center;
+        }
+
+        .speak-btn {
+            margin-right: 8px;
+        }
+
+        .status-note {
+            margin-top: 8px;
+            text-align: center;
+            font-family: var(--font-cn);
+            color: #555;
+            min-height: 28px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .status-note.correct {
+            color: #166534;
+            font-size: 28px;
+        }
+
+        .status-note.wrong {
+            color: #B00020;
+            font-size: 28px;
+        }
+
+        .winner-box {
+            margin-top: 14px;
+            border: 4px solid var(--border-color);
+            background: #111;
+            color: #FFF;
+            text-align: center;
+            font-family: var(--font-cn);
+            font-size: 24px;
+            padding: 12px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; max-width: 920px;">
+        <a href="lesson2.html" class="pixel-btn back-btn" style="text-decoration: none; display: inline-block;">⬅ 返回大厅</a>
+    </div>
+
+    <h1>💣 冰箱扫雷对战（双人轮流）</h1>
+
+    <div class="pixel-panel" style="max-width: 920px;">
+        <p style="font-family: var(--font-cn); text-align: center; color: #555;">
+            先进行单词装备学习，再完成 6 题闯关赚取复活费，最后进入扫雷对战。翻开前先大声说句子。
+        </p>
+
+        <div class="hud">
+            <div class="panel">
+                玩家 A
+                <div class="score-line">SCORE: <span id="score-a">0</span></div>
+                <div class="credit-line">REVIVE: <span id="credit-a">0</span></div>
+            </div>
+            <div class="panel turn-box" id="turn-box">学习阶段</div>
+            <div class="panel">
+                玩家 B
+                <div class="score-line">SCORE: <span id="score-b">0</span></div>
+                <div class="credit-line">REVIVE: <span id="credit-b">0</span></div>
+            </div>
+        </div>
+
+        <div class="learn-panel" id="learn-panel">
+            <div class="learn-title" id="learn-title">装备学习：先看图听音，再揭晓英文和中文</div>
+            <div class="learn-body">
+                <img id="learn-image" class="learn-image" src="" alt="word" onerror="this.style.display='none'">
+                <div>
+                    <div class="learn-word" id="learn-word">请先看图并听音，猜一猜中文意思</div>
+                    <div class="learn-word" id="learn-cn" style="font-family:var(--font-cn); font-size:24px; color:#B45309;"></div>
+                    <div style="text-align:center; margin-bottom:8px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+                        <button class="pixel-btn" id="learn-reveal-btn" onclick="revealLearningStep()" style="background:#6B46C1; color:#FFF;">👀 点击揭晓</button>
+                    </div>
+                    <div class="learn-options" id="learn-options" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-stage" id="game-stage">
+            <div>
+                <div class="sentence-box" id="sentence-box">完成装备学习后开始扫雷。</div>
+                <div class="board" id="board"></div>
+                <div class="winner-box" id="winner-box"></div>
+            </div>
+
+            <div class="game-right">
+                <div class="qa-panel" id="qa-panel" style="display:none; margin-bottom:10px;">
+                    <div class="qa-prompt" id="qa-prompt">情景题加载中...</div>
+                    <div class="qa-options" id="qa-options"></div>
+                </div>
+
+                <div class="status-note" id="status-note">先由玩家 A 开始。</div>
+
+                <div class="bottom-tools" style="margin-top:8px;">
+                    <button class="pixel-btn speak-btn" id="speak-btn" onclick="confirmSpoken()" style="background:#2D3748; color:#FFF; margin-right:0; width:100%;">✅ 我已完成朗读</button>
+                    <button class="pixel-btn submit" onclick="newGame()" style="width:100%;">🔄 新一局</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const items = [
+            { id: 'apple', name: 'apple', img: '../img/apple.png', type: 'countable', article: 'an' },
+            { id: 'banana', name: 'banana', img: '../img/banana.png', type: 'countable', article: 'a' },
+            { id: 'egg', name: 'egg', img: '../img/egg.png', type: 'countable', article: 'an' },
+            { id: 'carrot', name: 'carrot', img: '../img/carrot.png', type: 'countable', article: 'a' },
+            { id: 'milk', name: 'milk', img: '../img/milk.png', type: 'uncountable' },
+            { id: 'juice', name: 'juice', img: '../img/juice.png', type: 'uncountable' },
+            { id: 'water', name: 'water', img: '../img/water.png', type: 'uncountable' },
+            { id: 'bread', name: 'bread', img: '../img/bread.png', type: 'uncountable' }
+        ];
+
+        const boardSize = 16;
+        const mineCount = 5;
+        const quizQuestionCount = 6;
+        const learningRounds = 2;
+
+        const learningWords = [
+            { id: 'hungry', word: 'hungry', cn: '饿的', img: '../img/hungry.png', audio: '../audio/hungry.MP3' },
+            { id: 'thirsty', word: 'thirsty', cn: '渴的', img: '../img/thirsty.png', audio: '../audio/thirsty.MP3' },
+            { id: 'sweet', word: 'sweet', cn: '甜的', img: '../img/sweet.png', audio: '../audio/sweet.MP3' },
+            { id: 'cold', word: 'cold', cn: '冷的；冰的', img: '../img/cold.png', audio: '../audio/cold.MP3' },
+            { id: 'hot', word: 'hot', cn: '热的', img: '../img/hot.png', audio: '../audio/hot.MP3' }
+        ];
+
+        const scenarioQuestions = [
+            {
+                prompt: '情景：老师问你“你喜欢什么食物？”请选择最合适回答。',
+                options: ['I like chocolate.', 'I don’t like sausages.', 'This milk is hot.'],
+                answer: 'I like chocolate.'
+            },
+            {
+                prompt: '情景：老师问你“你不喜欢什么食物？”请选择最合适回答。',
+                options: ['I like chocolate.', 'I don’t like sausages.', 'Can I have a burger, please?'],
+                answer: 'I don’t like sausages.'
+            },
+            {
+                prompt: '情景：在餐厅里，你想要一个汉堡。',
+                options: ['Can I have a burger, please?', 'I am hungry. I want some rice.', 'This water is cold.'],
+                answer: 'Can I have a burger, please?'
+            },
+            {
+                prompt: '情景：在餐厅里，你想要一个苹果。',
+                options: ['Can I have an apple, please?', 'I like chocolate.', 'This milk is hot.'],
+                answer: 'Can I have an apple, please?'
+            },
+            {
+                prompt: '情景：在餐厅里，你想要一些牛奶。',
+                options: ['Can I have some milk, please?', 'I am thirsty. I want some juice.', 'This water is cold.'],
+                answer: 'Can I have some milk, please?'
+            },
+            {
+                prompt: '情景：在餐厅里，你想要一些面包。',
+                options: ['Can I have some bread, please?', 'I don’t like sausages.', 'This ice cream is sweet.'],
+                answer: 'Can I have some bread, please?'
+            },
+            {
+                prompt: '情景：你很饿，想要一个汉堡。',
+                options: ['I am hungry. I want a burger.', 'Can I have some milk, please?', 'This water is cold.'],
+                answer: 'I am hungry. I want a burger.'
+            },
+            {
+                prompt: '情景：你很渴，想要一些水。',
+                options: ['I am thirsty. I want some water.', 'I like chocolate.', 'Can I have some bread, please?'],
+                answer: 'I am thirsty. I want some water.'
+            },
+            {
+                prompt: '情景：你在描述一杯冰水。',
+                options: ['This water is cold.', 'I like chocolate.', 'Can I have an apple, please?'],
+                answer: 'This water is cold.'
+            },
+            {
+                prompt: '情景：你在描述一杯热牛奶。',
+                options: ['This milk is hot.', 'I don’t like sausages.', 'Can I have some ice cream, please?'],
+                answer: 'This milk is hot.'
+            }
+        ];
+
+        let boardData = [];
+        let currentPlayer = 'A';
+        let scores = { A: 0, B: 0 };
+        let reviveCredits = { A: 0, B: 0 };
+        let gameOver = false;
+        let clickLock = false;
+        let canOpenCell = false;
+        let spokenConfirmed = false;
+        let boomAudio = null;
+        let correctAudio = null;
+        let wrongAudio = null;
+        let learnAudio = null;
+        let inLearningPhase = true;
+        let inQuizPhase = false;
+        let learningQueue = [];
+        let currentLearning = null;
+        let learningRevealStep = 0;
+        let learningQuizQueue = [];
+        let currentQuiz = null;
+        let scenarioQueue = [];
+        let currentScenario = null;
+        let scenarioAudio = null;
+
+        function pluralize(word) {
+            if (word.endsWith('s')) return word;
+            if (word.endsWith('y')) return word.slice(0, -1) + 'ies';
+            return word + 's';
+        }
+
+        function playBoom() {
+            if (!boomAudio) return;
+            try {
+                boomAudio.currentTime = 0;
+                boomAudio.play().catch(() => {});
+            } catch (e) {
+                // ignore play failures
+            }
+        }
+
+        function playCorrect() {
+            if (!correctAudio) return;
+            try {
+                correctAudio.currentTime = 0;
+                correctAudio.play().catch(() => {});
+            } catch (e) {
+                // ignore play failures
+            }
+        }
+
+        function playWrong() {
+            if (!wrongAudio) return;
+            try {
+                wrongAudio.currentTime = 0;
+                wrongAudio.play().catch(() => {});
+            } catch (e) {
+                // ignore play failures
+            }
+        }
+
+        function randomItem() {
+            return items[Math.floor(Math.random() * items.length)];
+        }
+
+        function randomQty(item) {
+            if (item.type === 'uncountable') return 1;
+            return Math.random() < 0.5 ? 1 : (2 + Math.floor(Math.random() * 3));
+        }
+
+        function buildSentence(item, qty) {
+            if (item.type === 'uncountable') return `There is some ${item.name} in the fridge.`;
+            if (qty === 1) return `There is ${item.article} ${item.name} in the fridge.`;
+            return `There are some ${pluralize(item.name)} in the fridge.`;
+        }
+
+        function setTurnUI() {
+            let centerText = `当前回合：${currentPlayer}`;
+            if (inLearningPhase) centerText = '学习阶段';
+            if (inQuizPhase) centerText = `闯关阶段：玩家 ${currentPlayer}`;
+            document.getElementById('turn-box').innerText = centerText;
+            document.getElementById('score-a').innerText = scores.A;
+            document.getElementById('score-b').innerText = scores.B;
+            document.getElementById('credit-a').innerText = reviveCredits.A;
+            document.getElementById('credit-b').innerText = reviveCredits.B;
+        }
+
+        function switchTurn() {
+            currentPlayer = currentPlayer === 'A' ? 'B' : 'A';
+            setTurnUI();
+            canOpenCell = false;
+            if (!inLearningPhase && !inQuizPhase) {
+                nextScenarioQuestion();
+                renderScenarioQuestion();
+            }
+            updateSpeakButton();
+        }
+
+        function shuffle(arr) {
+            return [...arr].sort(() => Math.random() - 0.5);
+        }
+
+        function playCurrentWordAudio() {
+            return;
+        }
+
+        function renderLearningCard() {
+            if (!currentLearning) return;
+            const image = document.getElementById('learn-image');
+            const word = document.getElementById('learn-word');
+            const cn = document.getElementById('learn-cn');
+            const title = document.getElementById('learn-title');
+            const revealBtn = document.getElementById('learn-reveal-btn');
+
+            image.style.display = 'block';
+            image.src = currentLearning.img;
+            title.innerText = `装备学习 ${learningWords.length * learningRounds - learningQueue.length}/${learningWords.length * learningRounds}：看图听音，点击揭晓中文`;
+
+            word.innerText = '';
+            if (learningRevealStep === 0) {
+                cn.innerText = '';
+                revealBtn.innerText = '🀄 点击揭晓中文';
+            } else {
+                cn.innerText = currentLearning.cn;
+                revealBtn.innerText = learningQueue.length > 0 ? '➡️ 下一个单词' : '🚀 完成单词学习，进入闯关';
+            }
+        }
+
+        function startLearningPhase() {
+            inLearningPhase = true;
+            inQuizPhase = false;
+            learningQueue = shuffle([...learningWords, ...learningWords]);
+            currentLearning = learningQueue.pop() || null;
+            learningRevealStep = 0;
+            document.getElementById('learn-panel').style.display = 'block';
+            document.getElementById('game-stage').style.display = 'none';
+            document.getElementById('qa-panel').style.display = 'none';
+            document.getElementById('learn-reveal-btn').style.display = 'inline-block';
+            document.getElementById('learn-options').style.display = 'none';
+            showSentence('先完成装备学习：图片出现时会自动播音，点击揭晓中文释义。');
+            showStatus('共 5 个单词，循环 2 遍。');
+            setTurnUI();
+            renderLearningCard();
+            updateSpeakButton();
+        }
+
+        function buildLearningQuizQueue() {
+            const base = shuffle(learningWords).slice(0, Math.min(quizQuestionCount, learningWords.length));
+            const queue = [];
+            for (let i = 0; i < quizQuestionCount; i++) {
+                queue.push(base[i % base.length]);
+            }
+            return shuffle(queue);
+        }
+
+        function buildQuizOptions(correctWord) {
+            const correctCn = learningWords.find(w => w.word === correctWord)?.cn;
+            const pool = learningWords.map(w => w.cn).filter(cn => cn !== correctCn);
+            const distractors = shuffle(pool).slice(0, 3);
+            return shuffle([correctCn, ...distractors]);
+        }
+
+        function startLearningQuizPhase() {
+            inLearningPhase = false;
+            inQuizPhase = true;
+            learningQuizQueue = buildLearningQuizQueue();
+            currentQuiz = learningQuizQueue.pop() || null;
+            document.getElementById('learn-audio-btn').disabled = false;
+            document.getElementById('learn-reveal-btn').style.display = 'none';
+            document.getElementById('learn-options').style.display = 'grid';
+            showSentence('闯关规则：共 6 题，答对一题可赚 1 点复活费。');
+            showStatus('玩家轮流答题，公平赚取复活费。');
+            setTurnUI();
+            renderLearningQuizQuestion();
+            updateSpeakButton();
+        }
+
+        function nextScenarioQuestion() {
+            if (scenarioQueue.length === 0) {
+                scenarioQueue = shuffle(scenarioQuestions);
+            }
+            currentScenario = scenarioQueue.pop() || null;
+        }
+
+        function playScenarioAudio() {
+            if (!currentScenario || !currentScenario.audio) return;
+            if (scenarioAudio) scenarioAudio.pause();
+            scenarioAudio = new Audio(currentScenario.audio);
+            scenarioAudio.play().catch(() => {
+                showStatus('音频暂不可用，请直接看题目选择。');
+            });
+        }
+
+        function renderScenarioQuestion() {
+            const panel = document.getElementById('qa-panel');
+            const prompt = document.getElementById('qa-prompt');
+            const optionsWrap = document.getElementById('qa-options');
+            if (!panel || !prompt || !optionsWrap || !currentScenario) return;
+
+            panel.style.display = 'block';
+            prompt.innerText = currentScenario.prompt;
+            optionsWrap.innerHTML = '';
+
+            currentScenario.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'pixel-btn';
+                btn.innerText = opt;
+                btn.onclick = () => answerScenario(opt);
+                optionsWrap.appendChild(btn);
+            });
+        }
+
+        function answerScenario(selected) {
+            if (gameOver || clickLock || inLearningPhase || inQuizPhase || !currentScenario) return;
+            if (canOpenCell) return;
+
+            const correct = selected === currentScenario.answer;
+            if (!correct) {
+                playWrong();
+                showStatus(`❌ 回答错误，请再想想情景句。`, 'wrong');
+                return;
+            }
+
+            playCorrect();
+            canOpenCell = true;
+            spokenConfirmed = false;
+            updateSpeakButton();
+            showSentence(currentScenario.answer);
+            showStatus(`✅ 回答正确！请玩家 ${currentPlayer} 大声读这句，然后点击“我已说句子”，再翻 1 格。`, 'correct');
+            renderBoard();
+        }
+
+        function finishLearningQuizPhase() {
+            inQuizPhase = false;
+            document.getElementById('learn-panel').style.display = 'none';
+            document.getElementById('game-stage').style.display = 'grid';
+            scenarioQueue = shuffle(scenarioQuestions);
+            nextScenarioQuestion();
+            renderScenarioQuestion();
+            showSentence('请先完成情景选择，再朗读，再翻格。');
+            showStatus('闯关完成！进入扫雷：每回合先做情景选择。');
+            setTurnUI();
+            updateSpeakButton();
+            renderBoard();
+        }
+
+        function renderLearningQuizQuestion() {
+            if (!currentQuiz) return;
+            const image = document.getElementById('learn-image');
+            const word = document.getElementById('learn-word');
+            const cn = document.getElementById('learn-cn');
+            const title = document.getElementById('learn-title');
+            const optionsWrap = document.getElementById('learn-options');
+
+            image.style.display = 'block';
+            image.src = currentQuiz.img;
+            title.innerText = `闯关答题：剩余 ${learningQuizQueue.length + 1} 题（答对 +1 复活费）`;
+            word.innerText = currentQuiz.word;
+            cn.innerText = '';
+
+            optionsWrap.innerHTML = '';
+            buildQuizOptions(currentQuiz.word).forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'pixel-btn';
+                btn.innerText = opt;
+                btn.onclick = () => answerLearningQuiz(opt);
+                optionsWrap.appendChild(btn);
+            });
+
+            playCurrentWordAudio();
+        }
+
+        function answerLearningQuiz(selectedCn) {
+            if (!inQuizPhase || !currentQuiz || clickLock) return;
+            clickLock = true;
+            const correctCn = currentQuiz.cn;
+            const correct = selectedCn === correctCn;
+
+            if (correct) {
+                reviveCredits[currentPlayer] += 1;
+                showStatus(`玩家 ${currentPlayer} 答对：${currentQuiz.word} = ${correctCn}，复活费 +1。`, 'correct');
+                playCorrect();
+            } else {
+                showStatus(`玩家 ${currentPlayer} 答错，正确答案是 ${correctCn}。`, 'wrong');
+                playWrong();
+            }
+
+            setTurnUI();
+
+            setTimeout(() => {
+                switchTurn();
+                currentQuiz = learningQuizQueue.pop() || null;
+                if (!currentQuiz) {
+                    finishLearningQuizPhase();
+                } else {
+                    renderLearningQuizQuestion();
+                }
+                clickLock = false;
+            }, 700);
+        }
+
+        function revealLearningStep() {
+            if (!inLearningPhase || !currentLearning || clickLock) return;
+
+            if (learningRevealStep === 0) {
+                learningRevealStep = 1;
+                renderLearningCard();
+                return;
+            }
+
+            currentLearning = learningQueue.pop() || null;
+            if (!currentLearning) {
+                startLearningQuizPhase();
+                return;
+            }
+
+            learningRevealStep = 0;
+            renderLearningCard();
+            playLearnAudio();
+        }
+
+        function makeBoardData() {
+            boardData = [];
+            for (let i = 0; i < boardSize; i++) {
+                const item = randomItem();
+                const qty = randomQty(item);
+                boardData.push({
+                    index: i,
+                    isMine: false,
+                    opened: false,
+                    item,
+                    qty,
+                    sentence: buildSentence(item, qty)
+                });
+            }
+
+            const mineIndexes = [];
+            while (mineIndexes.length < mineCount) {
+                const idx = Math.floor(Math.random() * boardSize);
+                if (!mineIndexes.includes(idx)) mineIndexes.push(idx);
+            }
+
+            mineIndexes.forEach(idx => {
+                boardData[idx].isMine = true;
+                boardData[idx].sentence = 'Boom! Mine!';
+            });
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            boardData.forEach(cell => {
+                const div = document.createElement('div');
+                div.className = 'cell' + (cell.opened ? ' opened' : '') + (clickLock || gameOver || !canOpenCell ? ' locked' : '');
+                div.dataset.idx = cell.index;
+
+                if (!cell.opened) {
+                    div.innerText = '?';
+                } else if (cell.isMine) {
+                    div.innerHTML = '<span class="mine-mark">X</span>';
+                } else {
+                    div.innerHTML = `<img src="${cell.item.img}" alt="${cell.item.name}" onerror="this.style.display='none'">`;
+                }
+
+                div.onclick = () => openCell(cell.index);
+                board.appendChild(div);
+            });
+        }
+
+        function showSentence(text) {
+            document.getElementById('sentence-box').innerText = text;
+        }
+
+        function showStatus(text, type = '') {
+            const el = document.getElementById('status-note');
+            el.innerText = text;
+            el.classList.remove('correct', 'wrong');
+            if (type === 'correct') el.classList.add('correct');
+            if (type === 'wrong') el.classList.add('wrong');
+        }
+
+        function updateSpeakButton() {
+            const btn = document.getElementById('speak-btn');
+            if (!btn) return;
+            if (gameOver || inLearningPhase || inQuizPhase) {
+                btn.disabled = true;
+                btn.innerText = '✅ 我已说句子';
+                return;
+            }
+            if (!canOpenCell) {
+                btn.disabled = true;
+                btn.innerText = `✅ 玩家 ${currentPlayer}：先完成情景选择`;
+                return;
+            }
+            btn.disabled = spokenConfirmed;
+            btn.innerText = spokenConfirmed ? '✅ 已确认朗读，可翻一格' : `✅ 玩家 ${currentPlayer}：我已说句子`;
+        }
+
+        function confirmSpoken() {
+            if (gameOver || clickLock || inLearningPhase || inQuizPhase) return;
+            if (!canOpenCell) {
+                showStatus(`请先完成情景题并选出正确句子。`);
+                return;
+            }
+            spokenConfirmed = true;
+            updateSpeakButton();
+            showStatus(`玩家 ${currentPlayer} 已确认朗读，现在可翻开 1 格。`);
+            renderBoard();
+        }
+
+        function endGame() {
+            gameOver = true;
+            renderBoard();
+
+            const winnerBox = document.getElementById('winner-box');
+            let msg = '';
+            if (scores.A > scores.B) msg = `🏆 玩家 A 获胜！ ${scores.A} : ${scores.B}`;
+            else if (scores.B > scores.A) msg = `🏆 玩家 B 获胜！ ${scores.B} : ${scores.A}`;
+            else msg = `🤝 平局！ ${scores.A} : ${scores.B}`;
+
+            winnerBox.style.display = 'block';
+            winnerBox.innerText = msg;
+            showStatus('本局结束，点击“新一局”继续。');
+        }
+
+        function allSafeOpened() {
+            return boardData.filter(c => !c.isMine).every(c => c.opened);
+        }
+
+        function openCell(index) {
+            if (gameOver || clickLock || inLearningPhase || inQuizPhase) return;
+            if (!canOpenCell || !spokenConfirmed) {
+                showStatus(`请先完成情景题并点击“我已说句子”。`);
+                return;
+            }
+            const cell = boardData[index];
+            if (!cell || cell.opened) return;
+
+            canOpenCell = false;
+            spokenConfirmed = false;
+            updateSpeakButton();
+
+            clickLock = true;
+            cell.opened = true;
+            renderBoard();
+
+            if (cell.isMine) {
+                playBoom();
+                if (reviveCredits[currentPlayer] > 0) {
+                    reviveCredits[currentPlayer] -= 1;
+                    showSentence('🛡️ Revive used! Mine avoided.');
+                    showStatus(`玩家 ${currentPlayer} 踩雷，但消耗 1 点复活费，免扣分。`);
+                } else {
+                    scores[currentPlayer] = Math.max(0, scores[currentPlayer] - 1);
+                    showSentence('⚠️ Boom! This is a mine!');
+                    showStatus(`玩家 ${currentPlayer} 踩雷，扣 1 分（无复活费）。`);
+                }
+            } else {
+                scores[currentPlayer] += 1;
+                showSentence(cell.sentence);
+                showStatus(`玩家 ${currentPlayer} +1 分。`);
+            }
+
+            setTurnUI();
+
+            setTimeout(() => {
+                if (!gameOver) switchTurn();
+                clickLock = false;
+
+                if (allSafeOpened()) {
+                    endGame();
+                } else {
+                    renderBoard();
+                }
+            }, 1000);
+        }
+
+        function newGame() {
+            scores = { A: 0, B: 0 };
+            reviveCredits = { A: 0, B: 0 };
+            currentPlayer = 'A';
+            gameOver = false;
+            clickLock = false;
+            canOpenCell = false;
+            spokenConfirmed = false;
+            inLearningPhase = true;
+            inQuizPhase = false;
+            scenarioQueue = [];
+            currentScenario = null;
+            document.getElementById('winner-box').style.display = 'none';
+            document.getElementById('qa-panel').style.display = 'none';
+            makeBoardData();
+            setTurnUI();
+            updateSpeakButton();
+            renderBoard();
+            startLearningPhase();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            boomAudio = new Audio('../audio/boom.MP3');
+            boomAudio.preload = 'auto';
+            correctAudio = new Audio('../audio/correct.MP3');
+            correctAudio.preload = 'auto';
+            wrongAudio = new Audio('../audio/wrong.MP3');
+            wrongAudio.preload = 'auto';
+            newGame();
+        });
+    </script>
+</body>
+</html>

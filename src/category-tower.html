@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分类建塔对战 - 像素勇者英语课</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .hud {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .panel {
+            border: 3px solid var(--border-color);
+            background: #FFF;
+            padding: 10px;
+            text-align: center;
+            font-family: var(--font-cn);
+        }
+
+        .turn-box {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-accent);
+        }
+
+        .score-line {
+            font-family: var(--font-en);
+            font-size: 12px;
+            color: #333;
+            margin-top: 4px;
+        }
+
+        .arena {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 14px;
+            align-items: stretch;
+            margin-bottom: 14px;
+        }
+
+        .qa-box {
+            border: 4px solid var(--border-color);
+            background: #FFF;
+            box-shadow: 5px 5px 0 var(--border-color);
+            padding: 14px;
+            text-align: center;
+        }
+
+        .word-img {
+            width: 130px;
+            height: 130px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            margin: 8px auto;
+            display: block;
+        }
+
+        .word-en {
+            font-family: var(--font-en);
+            font-size: 28px;
+            color: var(--primary-accent);
+            text-transform: none;
+            margin: 8px 0;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .opt-btn {
+            border: 3px solid var(--border-color);
+            background: #F4F4F4;
+            box-shadow: 3px 3px 0 var(--border-color);
+            font-family: var(--font-cn);
+            font-size: 20px;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .tower-zone {
+            border: 4px dashed var(--border-color);
+            padding: 14px;
+            background: url('../img/tower_bg.png') center center / cover no-repeat;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tower-title {
+            text-align: center;
+            font-family: var(--font-cn);
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .tower-wrap {
+            position: relative;
+            width: 180px;
+            height: 360px;
+            margin: 0 auto;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .tower-ground {
+            position: absolute;
+            bottom: 0;
+            width: 180px;
+            height: 20px;
+            background: #6B7280;
+            border: 3px solid #374151;
+        }
+
+        .tower {
+            width: 120px;
+            min-height: 220px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 4px;
+            z-index: 2;
+        }
+
+        .floor {
+            height: 22px;
+            background: linear-gradient(180deg, #A78BFA 0%, #7C3AED 55%, #5B21B6 100%);
+            border: 2px solid #3C1E70;
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.18), inset 0 2px 0 rgba(255,255,255,0.25);
+            animation: rise 220ms ease;
+        }
+
+        @keyframes rise {
+            from { transform: translateY(12px); opacity: 0.5; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .crash-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .debris {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #7C3AED;
+            border: 2px solid #3C1E70;
+            opacity: 0;
+        }
+
+        .debris.boom {
+            animation: burst 650ms ease-out forwards;
+        }
+
+        @keyframes burst {
+            0% { transform: translate(0,0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--dx), var(--dy)) rotate(320deg) scale(0.7); opacity: 0; }
+        }
+
+        .feedback {
+            min-height: 30px;
+            text-align: center;
+            font-family: var(--font-cn);
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .winner-box {
+            margin-top: 12px;
+            border: 4px solid var(--border-color);
+            background: #111;
+            color: #FFF;
+            text-align: center;
+            font-family: var(--font-cn);
+            font-size: 24px;
+            padding: 12px;
+            display: none;
+        }
+
+        .controls {
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .setup-stage {
+            border: 4px solid var(--border-color);
+            background: linear-gradient(180deg, #FFF 0%, #FFF9EC 100%);
+            box-shadow: 6px 6px 0 var(--border-color);
+            padding: 18px;
+            margin-bottom: 14px;
+        }
+
+        .setup-stage h2 {
+            text-align: center;
+            font-family: var(--font-cn);
+            color: var(--primary-accent);
+            margin: 0 0 8px 0;
+        }
+
+        .setup-stage p {
+            text-align: center;
+            font-family: var(--font-cn);
+            color: #555;
+            margin: 0 0 14px 0;
+        }
+
+        .teacher-panel {
+            border: 3px dashed #999;
+            background: #FAFAFA;
+            padding: 12px;
+            font-family: var(--font-cn);
+        }
+
+        .teacher-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .teacher-row label {
+            font-size: 16px;
+            color: #333;
+        }
+
+        .teacher-row input, .teacher-row select {
+            border: 2px solid var(--border-color);
+            padding: 4px 6px;
+            font-family: var(--font-cn);
+            font-size: 15px;
+        }
+
+        .timer-box {
+            text-align: center;
+            font-family: var(--font-en);
+            color: #B00020;
+            font-size: 16px;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+
+        .learn-panel {
+            border: 4px solid var(--border-color);
+            background: #FFF;
+            box-shadow: 5px 5px 0 var(--border-color);
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .learn-title {
+            text-align: center;
+            font-family: var(--font-cn);
+            color: var(--primary-accent);
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .learn-body {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .learn-img {
+            width: 300px;
+            height: 300px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            margin: 0 auto;
+            display: block;
+            border: 3px dashed #CBD5E1;
+            background: #F8FAFC;
+            padding: 8px;
+        }
+
+        .learn-word {
+            text-align: center;
+            font-family: var(--font-en);
+            font-size: 36px;
+            color: #1F2937;
+            min-height: 44px;
+            margin: 6px 0;
+        }
+
+        .learn-cn {
+            text-align: center;
+            font-family: var(--font-cn);
+            font-size: 30px;
+            color: #B45309;
+            min-height: 40px;
+            margin: 6px 0 12px 0;
+        }
+
+        .learn-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 900px) {
+            .arena {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; max-width: 960px;">
+        <a href="lesson2.html" class="pixel-btn back-btn" style="text-decoration: none; display: inline-block;">⬅ 返回第二课</a>
+    </div>
+
+    <h1>🏗️ 分类建塔对战（双人轮流）</h1>
+
+    <div class="pixel-panel" style="max-width: 960px;">
+        <p style="font-family: var(--font-cn); text-align: center; color: #555;">
+            看图片 + 听音频 + 看英文，选择它的分类。答对加一层，答错塌一层。两位同学轮流作答。
+        </p>
+
+        <div class="setup-stage" id="setup-stage">
+            <h2>⚙️ 开战前设置</h2>
+            <p>先选词汇 level、是否开启倒计时，以及初始塔层数，再进入对战。</p>
+
+            <div class="teacher-panel" id="setup-panel">
+                <div class="teacher-row">
+                    <label>词汇等级：
+                        <select id="level-select">
+                            <option value="1">Level 1</option>
+                            <option value="2" selected>Level 2（全部）</option>
+                        </select>
+                    </label>
+                    <label>初始塔层数：
+                        <input type="number" id="init-height" min="1" max="12" value="3">
+                    </label>
+                    <label>
+                        <input type="checkbox" id="timer-toggle"> 计时答题
+                    </label>
+                    <label>每题秒数：
+                        <select id="timer-seconds">
+                            <option value="5">5</option>
+                            <option value="8" selected>8</option>
+                            <option value="10">10</option>
+                            <option value="12">12</option>
+                        </select>
+                    </label>
+                    <button class="pixel-btn" onclick="startBattleFromSetup()" style="background:#2D3748; color:#FFF;">🚀 开始建塔对战</button>
+                </div>
+                <div class="timer-box" id="timer-box">请先设置参数，再点击“开始建塔对战”。</div>
+            </div>
+        </div>
+
+        <div class="learn-panel" id="learn-panel" style="display:none;">
+            <div class="learn-title" id="learn-title">分类装备学习：先看图听音，再揭晓英文和中文</div>
+            <div class="learn-body">
+                <img id="learn-img" class="learn-img" src="" alt="category" onerror="this.style.display='none'">
+                <div>
+                    <div class="learn-word" id="learn-word">请先看图并听音，猜一猜是什么分类</div>
+                    <div class="learn-cn" id="learn-cn"></div>
+                    <div class="learn-actions">
+                        <button class="pixel-btn" onclick="playLearnAudio()" style="background:#2D3748; color:#FFF;">🔊 播放分类音频</button>
+                        <button class="pixel-btn" id="learn-reveal-btn" onclick="revealLearnStep()" style="background:#6B46C1; color:#FFF;">👀 点击揭晓</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hud" id="hud" style="display:none;">
+            <div class="panel">玩家 A<div class="score-line">SCORE: <span id="score-a">0</span></div></div>
+            <div class="panel turn-box" id="turn-box">当前回合：A</div>
+            <div class="panel">玩家 B<div class="score-line">SCORE: <span id="score-b">0</span></div></div>
+        </div>
+
+        <div class="arena" style="display:none;">
+            <div class="qa-box">
+                <div style="font-family: var(--font-cn); color: #666;">请判断单词分类：</div>
+                <img id="word-img" class="word-img" src="" alt="word" onerror="this.style.display='none'">
+                <div class="word-en" id="word-en">Apple</div>
+                <button class="pixel-btn" onclick="playCurrentAudio()" style="background:#2D3748; color:#FFF;">🔊 播放音频</button>
+                <div class="options" id="options"></div>
+                <div class="feedback" id="feedback"></div>
+            </div>
+
+            <div class="tower-zone">
+                <div class="tower-title">共同塔楼（倒塌为 0 层）</div>
+                <div class="tower-wrap" id="tower-wrap">
+                    <div class="tower-ground"></div>
+                    <div class="tower" id="tower"></div>
+                    <div class="crash-layer" id="crash-layer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="winner-box" id="winner-box"></div>
+
+        <div class="controls">
+            <button class="pixel-btn" id="next-btn" onclick="goNextQuestion()" style="display:none; margin-right:8px; background:#2D3748; color:#FFF;">➡️ 下一题</button>
+            <button class="pixel-btn submit" onclick="newGame()">🔄 新一局</button>
+        </div>
+    </div>
+
+    <script>
+        const categories = [
+            { id: 'fruit', label: 'Fruit' },
+            { id: 'vegetables', label: 'Vegetables' },
+            { id: 'drink', label: 'Drink' },
+            { id: 'meat', label: 'Meat' },
+            { id: 'other', label: 'Other Foods' }
+        ];
+
+        const categoryLearningCards = [
+            { id: 'fruit', en: 'Fruit', cn: '水果', img: '../img/fruit.png', audio: '../audio/fruit.MP3' },
+            { id: 'vegetables', en: 'Vegetables', cn: '蔬菜', img: '../img/vegetables.png', audio: '../audio/vegetables.MP3' },
+            { id: 'drink', en: 'Drink', cn: '饮品', img: '../img/drink.png', audio: '../audio/drink.MP3' },
+            { id: 'meat', en: 'Meat', cn: '肉类', img: '../img/meat.png', audio: '../audio/meat.MP3' },
+            { id: 'other', en: 'Other Foods', cn: '其他食物', img: '../img/other_foods.png', audio: '../audio/other_foods.MP3' }
+        ];
+
+        const words = [
+            { en: 'apple', img: '../img/apple.png', cat: 'fruit' },
+            { en: 'banana', img: '../img/banana.png', cat: 'fruit' },
+            { en: 'orange', img: '../img/orange.png', cat: 'fruit' },
+            { en: 'grape', img: '../img/grape.png', cat: 'fruit' },
+            { en: 'watermelon', img: '../img/watermelon.png', cat: 'fruit' },
+
+            { en: 'carrot', img: '../img/carrot.png', cat: 'vegetables' },
+            { en: 'potato', img: '../img/potato.png', cat: 'vegetables' },
+            { en: 'onion', img: '../img/onion.png', cat: 'vegetables' },
+
+            { en: 'milk', img: '../img/milk.png', cat: 'drink' },
+            { en: 'juice', img: '../img/juice.png', cat: 'drink' },
+            { en: 'water', img: '../img/water.png', cat: 'drink' },
+            { en: 'coffee', img: '../img/coffee.png', cat: 'drink' },
+            { en: 'lemonade', img: '../img/lemonade.png', cat: 'drink' },
+            { en: 'milkshake', img: '../img/milkshake.png', cat: 'drink' },
+
+            { en: 'burger', img: '../img/burger.png', cat: 'meat' },
+            { en: 'sausage', img: '../img/sausage.png', cat: 'meat' },
+            { en: 'chicken', img: '../img/chicken.png', cat: 'meat' },
+
+            { en: 'bread', img: '../img/bread.png', cat: 'other' },
+            { en: 'egg', img: '../img/egg.png', cat: 'other' },
+            { en: 'rice', img: '../img/rice.png', cat: 'other' },
+            { en: 'chocolate', img: '../img/chocolate.png', cat: 'other' },
+            { en: 'ice cream', img: '../img/icecream.png', cat: 'other' },
+            { en: 'cheese', img: '../img/cheese.png', cat: 'other' },
+            { en: 'noodles', img: '../img/noodles.png', cat: 'other' },
+            { en: 'pasta', img: '../img/pasta.png', cat: 'other' },
+            { en: 'sandwich', img: '../img/sandwich.png', cat: 'other' },
+            { en: 'pancake', img: '../img/pancake.png', cat: 'other' },
+            { en: 'soup', img: '../img/soup.png', cat: 'other' },
+            { en: 'salad', img: '../img/salad.png', cat: 'other' },
+            { en: 'candy', img: '../img/candy.png', cat: 'other' },
+            { en: 'sauce', img: '../img/sauce.png', cat: 'other' },
+            { en: 'sugar', img: '../img/sugar.png', cat: 'other' },
+            { en: 'fish', img: '../img/fish.png', cat: 'other' },
+            { en: 'pie', img: '../img/pie.png', cat: 'other' }
+        ];
+
+        let queue = [];
+        let currentWord = null;
+        let currentPlayer = 'A';
+        let scores = { A: 0, B: 0 };
+        let towerHeight = 3;
+        let gameOver = false;
+        let currentAudio = null;
+        let currentCategoryAudio = null;
+        let collapseAudio = null;
+        let turnLocked = false;
+        let timerEnabled = false;
+        let timerSeconds = 8;
+        let timerValue = 0;
+        let timerInterval = null;
+        let onlyLevel1 = false;
+        let inLearningPhase = true;
+        let activeConfig = {
+            level: '2',
+            initHeight: 3,
+            timerEnabled: false,
+            timerSeconds: 8
+        };
+        let learningQueue = [];
+        let currentLearningCategory = null;
+        let learningRevealStep = 0;
+        let learnAudio = null;
+        let pendingNextWord = null;
+
+        // 统一控制音效和题目切换节奏，避免语音重叠
+        const LEARNING_ROUNDS = 3;
+        const OPTION_AUDIO_GAP_MS = 1500;
+        const COLLAPSE_AUDIO_DELAY_MS = 1200;
+        const NEXT_WORD_DELAY_CORRECT_MS = 2200;
+        const NEXT_WORD_DELAY_WRONG_MS = 3000;
+
+        const cnMap = {
+            apple: '苹果', banana: '香蕉', orange: '橙子', grape: '葡萄', watermelon: '西瓜',
+            carrot: '胡萝卜', potato: '土豆', onion: '洋葱',
+            milk: '牛奶', juice: '果汁', water: '水', coffee: '咖啡', lemonade: '柠檬水', milkshake: '奶昔',
+            burger: '汉堡', sausage: '香肠', chicken: '鸡肉',
+            bread: '面包', egg: '鸡蛋', rice: '米饭', chocolate: '巧克力', 'ice cream': '冰淇淋', cheese: '奶酪',
+            noodles: '面条', pasta: '意大利面', sandwich: '三明治', pancake: '煎饼', soup: '汤', salad: '沙拉',
+            candy: '糖果', sauce: '酱汁', sugar: '糖', fish: '鱼', pie: '馅饼'
+        };
+
+        const categoryCnMap = {
+            Fruit: '水果',
+            Vegetables: '蔬菜',
+            Drink: '饮品',
+            Meat: '肉类',
+            'Other Foods': '其他食物'
+        };
+
+        function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+        function toTitleCase(word) {
+            return word.split(' ').map(part => part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : part).join(' ');
+        }
+
+        function getAudioPath(word) {
+            return `../audio/${word}.MP3`;
+        }
+
+        function getCategoryAudioPath(label) {
+            const key = label.toLowerCase() === 'other foods' ? 'other_foods' : label.toLowerCase();
+            return `../audio/${key}.MP3`;
+        }
+
+        function playCurrentAudio() {
+            if (!currentWord) return;
+            if (currentAudio) currentAudio.pause();
+            currentAudio = new Audio(getAudioPath(currentWord.en));
+            currentAudio.play().catch(() => {});
+        }
+
+        function playCategoryAudio(label) {
+            if (currentCategoryAudio) currentCategoryAudio.pause();
+            currentCategoryAudio = new Audio(getCategoryAudioPath(label));
+            currentCategoryAudio.play().catch(() => {});
+        }
+
+        function playCollapseAudio() {
+            if (!collapseAudio) return;
+            try {
+                collapseAudio.currentTime = 0;
+                collapseAudio.play().catch(() => {});
+            } catch (e) {
+                // ignore play failures
+            }
+        }
+
+        function renderTower() {
+            const tower = document.getElementById('tower');
+            tower.innerHTML = '';
+            for (let i = 0; i < towerHeight; i++) {
+                const floor = document.createElement('div');
+                floor.className = 'floor';
+                tower.appendChild(floor);
+            }
+        }
+
+        function playCollapseEffect() {
+            const layer = document.getElementById('crash-layer');
+            layer.innerHTML = '';
+            const count = 12;
+            for (let i = 0; i < count; i++) {
+                const d = document.createElement('div');
+                d.className = 'debris';
+                const dx = (Math.random() * 180 - 90).toFixed(0) + 'px';
+                const dy = (Math.random() * 120 + 30).toFixed(0) + 'px';
+                d.style.left = (84 + Math.random() * 20) + 'px';
+                d.style.top = (120 + Math.random() * 80) + 'px';
+                d.style.setProperty('--dx', dx);
+                d.style.setProperty('--dy', dy);
+                layer.appendChild(d);
+                requestAnimationFrame(() => d.classList.add('boom'));
+            }
+        }
+
+        function setTurnUI() {
+            document.getElementById('turn-box').innerText = inLearningPhase ? '学习阶段' : `当前回合：${currentPlayer}`;
+            document.getElementById('score-a').innerText = scores.A;
+            document.getElementById('score-b').innerText = scores.B;
+        }
+
+        function switchTurn() {
+            currentPlayer = currentPlayer === 'A' ? 'B' : 'A';
+            setTurnUI();
+        }
+
+        function showWord(word) {
+            currentWord = word;
+            turnLocked = false;
+            document.getElementById('word-img').src = word.img;
+            document.getElementById('word-en').innerText = toTitleCase(word.en);
+            document.getElementById('feedback').innerText = '';
+            playCurrentAudio();
+            startQuestionTimer();
+        }
+
+        function playLearnAudio() {
+            if (!currentLearningCategory) return;
+            if (learnAudio) learnAudio.pause();
+            learnAudio = new Audio(currentLearningCategory.audio);
+            learnAudio.play().catch(() => {});
+        }
+
+        function renderLearningCard() {
+            if (!currentLearningCategory) return;
+            const img = document.getElementById('learn-img');
+            const word = document.getElementById('learn-word');
+            const cn = document.getElementById('learn-cn');
+            const revealBtn = document.getElementById('learn-reveal-btn');
+            const title = document.getElementById('learn-title');
+
+            img.style.display = 'block';
+            img.src = currentLearningCategory.img;
+            title.innerText = `分类装备学习 ${categoryLearningCards.length - learningQueue.length}/${categoryLearningCards.length}：先猜，再揭晓`;
+
+            if (learningRevealStep === 0) {
+                word.innerText = '请看图并听音：猜一猜是什么分类';
+                cn.innerText = '';
+                revealBtn.innerText = '👀 点击揭晓英文';
+            } else if (learningRevealStep === 1) {
+                word.innerText = currentLearningCategory.en;
+                cn.innerText = '';
+                revealBtn.innerText = '🀄 点击揭晓中文';
+            } else {
+                word.innerText = currentLearningCategory.en;
+                cn.innerText = currentLearningCategory.cn;
+                revealBtn.innerText = learningQueue.length > 0 ? '➡️ 下一个分类' : '🚀 完成学习，开始建塔';
+            }
+        }
+
+        function revealLearnStep() {
+            if (!inLearningPhase || !currentLearningCategory || turnLocked) return;
+
+            if (learningRevealStep < 2) {
+                learningRevealStep += 1;
+                renderLearningCard();
+                return;
+            }
+
+            currentLearningCategory = learningQueue.pop() || null;
+            if (!currentLearningCategory) {
+                finishLearningPhase();
+                return;
+            }
+
+            learningRevealStep = 0;
+            renderLearningCard();
+            playLearnAudio();
+        }
+
+        function startLearningPhase() {
+            inLearningPhase = true;
+            learningQueue = shuffle(Array.from({ length: LEARNING_ROUNDS }, () => categoryLearningCards).flat());
+            currentLearningCategory = learningQueue.pop() || null;
+            learningRevealStep = 0;
+            document.getElementById('learn-panel').style.display = 'block';
+            document.querySelector('.arena').style.display = 'none';
+            document.getElementById('feedback').innerText = '';
+            showLearningHint();
+            setTurnUI();
+            renderTower();
+            renderLearningCard();
+            playLearnAudio();
+        }
+
+        function showLearningHint() {
+            document.getElementById('timer-box').innerText = `学习流程：先听音猜分类 → 点一次看英文 → 再点一次看中文（共 ${LEARNING_ROUNDS} 轮）`;
+        }
+
+        function finishLearningPhase() {
+            inLearningPhase = false;
+            document.getElementById('learn-panel').style.display = 'none';
+            document.querySelector('.arena').style.display = 'grid';
+            clearTimer();
+            setTurnUI();
+            if (queue.length > 0) showWord(queue.pop());
+        }
+
+        function renderOptions() {
+            const wrap = document.getElementById('options');
+            wrap.innerHTML = '';
+            categories.forEach(c => {
+                const b = document.createElement('button');
+                b.className = 'opt-btn';
+                b.innerText = c.label;
+                b.onclick = () => answer(c.id === currentWord.cat, c.label);
+                wrap.appendChild(b);
+            });
+        }
+
+        function answer(isCorrect, pickedLabel) {
+            if (gameOver || !currentWord || turnLocked) return;
+            turnLocked = true;
+            clearTimer();
+            playCategoryAudio(pickedLabel);
+
+            const cn = cnMap[currentWord.en] || '（无中文）';
+            const pickedLabelCn = categoryCnMap[pickedLabel] || '（无中文）';
+            const correctLabel = categories.find(c => c.id === currentWord.cat).label;
+            const correctLabelCn = categoryCnMap[correctLabel] || '（无中文）';
+
+            if (isCorrect) {
+                towerHeight += 1;
+                scores[currentPlayer] += 1;
+                document.getElementById('feedback').innerText = `✅ 你选了 ${pickedLabel}（${pickedLabelCn}）并且正确！「${toTitleCase(currentWord.en)} = ${cn}」塔楼 +1`;
+            } else {
+                towerHeight = Math.max(0, towerHeight - 1);
+                playCollapseEffect();
+                setTimeout(() => playCollapseAudio(), COLLAPSE_AUDIO_DELAY_MS);
+                document.getElementById('feedback').innerText = `❌ 你选了 ${pickedLabel}（${pickedLabelCn}）但错误。正确是 ${correctLabel}（${correctLabelCn}）。${toTitleCase(currentWord.en)} = ${cn}，塔楼 -1`;
+            }
+
+            renderTower();
+            setTurnUI();
+
+            if (towerHeight <= 0) {
+                setTimeout(() => endGame('💥 塔楼倒塌！本局结束。'), NEXT_WORD_DELAY_WRONG_MS);
+                return;
+            }
+
+            if (queue.length === 0) {
+                setTimeout(() => endGame('🎉 题目完成！塔楼成功守住！'), NEXT_WORD_DELAY_CORRECT_MS);
+                return;
+            }
+
+            pendingNextWord = queue.pop();
+            document.getElementById('next-btn').style.display = 'inline-block';
+        }
+
+        function goNextQuestion() {
+            if (gameOver || inLearningPhase || !pendingNextWord) return;
+            document.getElementById('next-btn').style.display = 'none';
+            const nextWord = pendingNextWord;
+            pendingNextWord = null;
+            switchTurn();
+            showWord(nextWord);
+        }
+
+        function endGame(prefix) {
+            gameOver = true;
+            clearTimer();
+            pendingNextWord = null;
+            document.getElementById('next-btn').style.display = 'none';
+            const winnerBox = document.getElementById('winner-box');
+            let result = '';
+            if (scores.A > scores.B) result = `玩家 A 获胜（${scores.A}:${scores.B}）`;
+            else if (scores.B > scores.A) result = `玩家 B 获胜（${scores.B}:${scores.A}）`;
+            else result = `平局（${scores.A}:${scores.B}）`;
+
+            winnerBox.style.display = 'block';
+            winnerBox.innerText = `${prefix} ${result}`;
+        }
+
+        function getLevel1Words() {
+            const level1Set = new Set([
+                'apple', 'banana', 'orange', 'carrot', 'potato',
+                'burger', 'sausage', 'milk', 'juice', 'water',
+                'bread', 'egg', 'rice', 'chocolate', 'ice cream'
+            ]);
+            return words.filter(w => level1Set.has(w.en));
+        }
+
+        function clearTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            document.getElementById('timer-box').innerText = '';
+        }
+
+        function startQuestionTimer() {
+            clearTimer();
+            if (!timerEnabled || gameOver) return;
+
+            timerValue = timerSeconds;
+            document.getElementById('timer-box').innerText = `TIME: ${timerValue}s`;
+            timerInterval = setInterval(() => {
+                timerValue -= 1;
+                document.getElementById('timer-box').innerText = `TIME: ${timerValue}s`;
+                if (timerValue <= 0) {
+                    clearTimer();
+                    answer(false, '超时');
+                }
+            }, 1000);
+        }
+
+        function applyTeacherSettings() {
+            const initHeightInput = document.getElementById('init-height');
+            const timerToggle = document.getElementById('timer-toggle');
+            const timerSecondsSelect = document.getElementById('timer-seconds');
+            const levelSelect = document.getElementById('level-select');
+
+            let initHeight = parseInt(initHeightInput.value || '3', 10);
+            if (Number.isNaN(initHeight)) initHeight = 3;
+            initHeight = Math.max(1, Math.min(12, initHeight));
+            initHeightInput.value = String(initHeight);
+
+            timerEnabled = timerToggle.checked;
+            timerSeconds = parseInt(timerSecondsSelect.value, 10) || 8;
+            onlyLevel1 = levelSelect.value === '1';
+
+            activeConfig = {
+                level: levelSelect.value,
+                initHeight,
+                timerEnabled,
+                timerSeconds
+            };
+
+            return initHeight;
+        }
+
+        function initBattleWithCurrentSettings() {
+            const initHeight = applyTeacherSettings();
+            const wordPool = onlyLevel1 ? getLevel1Words() : words;
+
+            queue = shuffle(wordPool);
+            scores = { A: 0, B: 0 };
+            currentPlayer = 'A';
+            towerHeight = initHeight;
+            gameOver = false;
+            turnLocked = false;
+            pendingNextWord = null;
+            document.getElementById('winner-box').style.display = 'none';
+            document.getElementById('next-btn').style.display = 'none';
+            document.getElementById('setup-stage').style.display = 'none';
+            document.getElementById('hud').style.display = 'grid';
+            document.querySelector('.arena').style.display = 'none';
+            document.getElementById('learn-panel').style.display = 'block';
+            renderOptions();
+            renderTower();
+            setTurnUI();
+            startLearningPhase();
+        }
+
+        function startBattleFromSetup() {
+            initBattleWithCurrentSettings();
+        }
+
+        function newGame() {
+            initBattleWithCurrentSettings();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            collapseAudio = new Audio('../audio/collapse.MP3');
+            collapseAudio.preload = 'auto';
+            document.getElementById('timer-toggle').addEventListener('change', () => {
+                if (!document.getElementById('timer-toggle').checked) clearTimer();
+            });
+        });
+    </script>
+</body>
+</html>

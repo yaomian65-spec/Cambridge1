@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>句子修复工坊 - 像素勇者英语课</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .task-box {
+            border: 4px solid var(--border-color);
+            padding: 20px;
+            background: #FFF;
+            margin: 20px auto;
+            max-width: 850px;
+        }
+
+        .wrong-sentence {
+            font-family: var(--font-cn);
+            font-size: 28px;
+            color: var(--primary-accent);
+            text-align: center;
+            margin: 15px 0;
+            line-height: 1.6;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .opt-btn {
+            background: #F4F4F4;
+            border: 3px solid var(--border-color);
+            box-shadow: 3px 3px 0 var(--border-color);
+            font-family: var(--font-cn);
+            font-size: 20px;
+            padding: 12px;
+            cursor: pointer;
+        }
+
+        .opt-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0 var(--border-color);
+        }
+
+        .feedback {
+            margin-top: 20px;
+            min-height: 56px;
+            font-family: var(--font-cn);
+            font-size: 22px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .ok { color: var(--tertiary-accent); }
+        .bad { color: var(--primary-accent); }
+
+        .correct-box {
+            margin-top: 10px;
+            text-align: center;
+            font-family: var(--font-cn);
+            font-size: 22px;
+            color: #111;
+        }
+
+        .score-line {
+            font-family: var(--font-en);
+            text-align: center;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .mode-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-family: var(--font-cn);
+        }
+
+        .mode-chip {
+            border: 2px solid var(--border-color);
+            background: #FFF;
+            padding: 8px 12px;
+        }
+
+        body.big-mode .wrong-sentence { font-size: 42px; }
+        body.big-mode .opt-btn { font-size: 28px; padding: 18px; }
+        body.big-mode .feedback, body.big-mode .correct-box { font-size: 30px; }
+
+        .teacher-only {
+            transition: opacity 0.2s;
+        }
+
+        body.classroom-lock .teacher-only {
+            opacity: 0;
+            pointer-events: none;
+            height: 0;
+            overflow: hidden;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+        }
+
+        body.classroom-lock .student-focus {
+            max-width: 1000px !important;
+        }
+
+        body.classroom-lock .student-focus .task-box {
+            margin-top: 0;
+        }
+
+        body.classroom-lock .student-focus .wrong-sentence {
+            font-size: 46px;
+            line-height: 1.5;
+        }
+
+        body.classroom-lock .student-focus .opt-btn {
+            font-size: 30px;
+            padding: 20px;
+        }
+
+        .unlock-fab {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 9999;
+            display: none;
+            background: #111;
+            color: #FFF;
+            border: 3px solid #FFF;
+            padding: 10px 14px;
+            font-family: var(--font-cn);
+            cursor: pointer;
+        }
+
+        body.classroom-lock .unlock-fab {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; max-width: 900px;" class="teacher-only">
+        <a href="lesson2.html" class="pixel-btn back-btn" style="text-decoration: none; display: inline-block;">⬅ 返回大厅</a>
+    </div>
+
+    <h1>🛠️ 句子修复工坊</h1>
+
+    <div class="pixel-panel student-focus" style="max-width: 900px;">
+        <p style="font-family: var(--font-cn); text-align: center; color: #555;">
+            看错句，选正确版本。练 There is / There are / some / a-an + 介词（next to / in / at / on / under）。
+        </p>
+
+        <div class="mode-bar teacher-only">
+            <label class="mode-chip"><input type="checkbox" id="big-mode-toggle"> 大字显示（投屏）</label>
+            <label class="mode-chip"><input type="checkbox" id="auto-next-toggle"> 自动下一题</label>
+            <label class="mode-chip"><input type="checkbox" id="hide-english-toggle"> 隐藏英文选项（先说再看）</label>
+            <label class="mode-chip"><input type="checkbox" id="classroom-lock-toggle"> 课堂锁定（只留核心区）</label>
+        </div>
+
+        <div class="score-line teacher-only">SCORE: <span id="score">0</span> / <span id="total">0</span></div>
+
+        <div class="task-box">
+            <div style="font-family: var(--font-cn); text-align: center; color: #666;">错误句子：</div>
+            <div class="wrong-sentence" id="wrong-sentence">There are some milk in the fridge.</div>
+
+            <div class="options" id="options"></div>
+
+            <div class="feedback" id="feedback"></div>
+            <div class="correct-box" id="correct-box"></div>
+
+            <div class="teacher-only" style="text-align: center; margin-top: 20px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+                <button class="pixel-btn" id="reveal-options-btn" onclick="revealOptions()" style="background-color:#4A5568; color:#FFF; display:none;">揭晓英文选项</button>
+                <button class="pixel-btn submit" id="next-btn" onclick="nextQuestion()">下一题</button>
+            </div>
+        </div>
+    </div>
+
+    <button id="unlock-btn" class="unlock-fab" onclick="requestUnlock()">教师解锁</button>
+
+    <script>
+        const questions = [
+            {
+                wrong: 'There are some milk in the fridge.',
+                correct: 'There is some milk in the fridge.',
+                options: [
+                    'There is some milk in the fridge.',
+                    'There are a milk in the fridge.',
+                    'There is a milk in the fridge.'
+                ]
+            },
+            {
+                wrong: 'There is eggs on the table.',
+                correct: 'There are some eggs on the table.',
+                options: [
+                    'There are some eggs on the table.',
+                    'There is some eggs on the table.',
+                    'There are an egg on the table.'
+                ]
+            },
+            {
+                wrong: 'There are an apple under the chair.',
+                correct: 'There is an apple under the chair.',
+                options: [
+                    'There is an apple under the chair.',
+                    'There are some apple under the chair.',
+                    'There is some apple under the chair.'
+                ]
+            },
+            {
+                wrong: 'There are some juice in the box.',
+                correct: 'There is some juice in the box.',
+                options: [
+                    'There is some juice in the box.',
+                    'There are a juice in the box.',
+                    'There is a juice in the box.'
+                ]
+            },
+            {
+                wrong: 'There is some carrots next to the bed.',
+                correct: 'There are some carrots next to the bed.',
+                options: [
+                    'There are some carrots next to the bed.',
+                    'There is a carrots next to the bed.',
+                    'There are carrot next to the bed.'
+                ]
+            },
+            {
+                wrong: 'There is banana at the door.',
+                correct: 'There is a banana at the door.',
+                options: [
+                    'There is a banana at the door.',
+                    'There are some banana at the door.',
+                    'There is some banana at the door.'
+                ]
+            },
+            {
+                wrong: 'There are some water under the table.',
+                correct: 'There is some water under the table.',
+                options: [
+                    'There is some water under the table.',
+                    'There are a water under the table.',
+                    'There is a water under the table.'
+                ]
+            },
+            {
+                wrong: 'There is eggs in the cupboard.',
+                correct: 'There are some eggs in the cupboard.',
+                options: [
+                    'There are some eggs in the cupboard.',
+                    'There is some eggs in the cupboard.',
+                    'There are an egg in the cupboard.'
+                ]
+            },
+            {
+                wrong: 'There are some rice on the chair.',
+                correct: 'There is some rice on the chair.',
+                options: [
+                    'There is some rice on the chair.',
+                    'There are a rice on the chair.',
+                    'There is a rice on the chair.'
+                ]
+            },
+            {
+                wrong: 'There are an egg next to the box.',
+                correct: 'There is an egg next to the box.',
+                options: [
+                    'There is an egg next to the box.',
+                    'There are some egg next to the box.',
+                    'There is some egg next to the box.'
+                ]
+            }
+        ];
+
+        let pool = [];
+        let current = null;
+        let score = 0;
+        let total = 0;
+        let answered = false;
+        let autoNext = false;
+        let hideEnglish = false;
+        const UNLOCK_CODE = '416602';
+
+        function shuffle(arr) {
+            return [...arr].sort(() => Math.random() - 0.5);
+        }
+
+        function loadQuestion() {
+            if (pool.length === 0) {
+                pool = shuffle(questions);
+            }
+            current = pool.pop();
+            answered = false;
+
+            document.getElementById('wrong-sentence').innerText = current.wrong;
+            document.getElementById('feedback').innerText = '';
+            document.getElementById('feedback').className = 'feedback';
+            document.getElementById('correct-box').innerText = '';
+
+            const optionsWrap = document.getElementById('options');
+            optionsWrap.innerHTML = '';
+
+            const revealBtn = document.getElementById('reveal-options-btn');
+            if (hideEnglish) {
+                optionsWrap.innerHTML = '<div class="helper" style="grid-column: 1 / -1; text-align:center; font-family: var(--font-cn);">先让学生口头改错，再点击“揭晓英文选项”。</div>';
+                revealBtn.style.display = 'inline-block';
+            } else {
+                revealBtn.style.display = 'none';
+                renderOptions();
+            }
+        }
+
+        function renderOptions() {
+            const optionsWrap = document.getElementById('options');
+            optionsWrap.innerHTML = '';
+
+            shuffle(current.options).forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'opt-btn';
+                btn.innerText = opt;
+                btn.onclick = () => chooseOption(opt);
+                optionsWrap.appendChild(btn);
+            });
+        }
+
+        function revealOptions() {
+            renderOptions();
+            document.getElementById('reveal-options-btn').style.display = 'none';
+        }
+
+        function chooseOption(opt) {
+            if (answered) return;
+            answered = true;
+            total++;
+
+            const feedback = document.getElementById('feedback');
+            const correctBox = document.getElementById('correct-box');
+
+            if (opt === current.correct) {
+                score++;
+                feedback.innerText = '✅ Correct! Great job!';
+                feedback.classList.add('ok');
+                correctBox.innerText = current.correct;
+            } else {
+                feedback.innerText = '❌ Try again next one!';
+                feedback.classList.add('bad');
+                correctBox.innerText = '正确句：' + current.correct;
+            }
+
+            document.getElementById('score').innerText = score;
+            document.getElementById('total').innerText = total;
+
+            if (autoNext) {
+                setTimeout(() => {
+                    loadQuestion();
+                }, 1200);
+            }
+        }
+
+        function nextQuestion() {
+            loadQuestion();
+        }
+
+        function setClassroomLock(locked) {
+            document.body.classList.toggle('classroom-lock', locked);
+            const lockToggle = document.getElementById('classroom-lock-toggle');
+            if (lockToggle) lockToggle.checked = locked;
+        }
+
+        function requestUnlock() {
+            const input = prompt('请输入教师解锁口令：');
+            if (input === null) return;
+            if (input.trim() === UNLOCK_CODE) {
+                setClassroomLock(false);
+                alert('已退出课堂锁定。');
+            } else {
+                alert('口令错误，保持锁定。');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadQuestion();
+
+            document.getElementById('big-mode-toggle').addEventListener('change', (e) => {
+                document.body.classList.toggle('big-mode', e.target.checked);
+            });
+
+            document.getElementById('auto-next-toggle').addEventListener('change', (e) => {
+                autoNext = e.target.checked;
+                document.getElementById('next-btn').style.display = autoNext ? 'none' : 'inline-block';
+            });
+
+            document.getElementById('hide-english-toggle').addEventListener('change', (e) => {
+                hideEnglish = e.target.checked;
+                loadQuestion();
+            });
+
+            document.getElementById('classroom-lock-toggle').addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    setClassroomLock(true);
+                } else {
+                    requestUnlock();
+                    if (document.body.classList.contains('classroom-lock')) {
+                        e.target.checked = true;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

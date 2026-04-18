@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔法冰箱造句器 - 像素勇者英语课</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .builder-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .zone {
+            border: 4px solid var(--border-color);
+            background: #F9F9F9;
+            padding: 15px;
+        }
+
+        .zone h3 {
+            margin-top: 0;
+            font-family: var(--font-cn);
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .food-card {
+            border: 3px solid var(--border-color);
+            background: #FFF;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 var(--border-color);
+        }
+
+        .food-card:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0 var(--border-color);
+        }
+
+        .food-card img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .fridge-list {
+            min-height: 220px;
+            border: 3px dashed #AAA;
+            padding: 10px;
+            background: #FFFFFF;
+        }
+
+        .fridge-row {
+            font-family: var(--font-cn);
+            margin: 8px 0;
+            padding: 8px;
+            border: 2px solid #DDD;
+            background: #F4F8FF;
+        }
+
+        .sentence-box {
+            margin-top: 15px;
+            padding: 15px;
+            border: 4px solid var(--border-color);
+            background: #111;
+            color: #FFF;
+            font-family: var(--font-cn);
+            font-size: 22px;
+            line-height: 1.6;
+            min-height: 100px;
+        }
+
+        .helper {
+            font-family: var(--font-cn);
+            color: #555;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .mode-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 16px;
+            font-family: var(--font-cn);
+        }
+
+        .mode-chip {
+            border: 2px solid var(--border-color);
+            background: #FFF;
+            padding: 8px 12px;
+        }
+
+        body.big-mode .food-card div { font-size: 18px !important; }
+        body.big-mode .fridge-row { font-size: 24px; }
+        body.big-mode .sentence-box { font-size: 34px; min-height: 130px; }
+
+        .teacher-only {
+            transition: opacity 0.2s;
+        }
+
+        body.classroom-lock .teacher-only {
+            opacity: 0;
+            pointer-events: none;
+            height: 0;
+            overflow: hidden;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+        }
+
+        body.classroom-lock .student-focus {
+            max-width: 1100px !important;
+        }
+
+        body.classroom-lock .student-focus .zone:first-child {
+            display: none;
+        }
+
+        body.classroom-lock .student-focus .builder-layout {
+            grid-template-columns: 1fr;
+        }
+
+        body.classroom-lock .student-focus .sentence-box {
+            font-size: 44px;
+            min-height: 180px;
+        }
+
+        .unlock-fab {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 9999;
+            display: none;
+            background: #111;
+            color: #FFF;
+            border: 3px solid #FFF;
+            padding: 10px 14px;
+            font-family: var(--font-cn);
+            cursor: pointer;
+        }
+
+        body.classroom-lock .unlock-fab {
+            display: block;
+        }
+
+        @media (max-width: 900px) {
+            .builder-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; max-width: 1000px;" class="teacher-only">
+        <a href="lesson2.html" class="pixel-btn back-btn" style="text-decoration: none; display: inline-block;">⬅ 返回大厅</a>
+    </div>
+
+    <h1>🧊 魔法冰箱造句器</h1>
+
+    <div class="pixel-panel student-focus" style="max-width: 1000px;">
+        <p style="font-family: var(--font-cn); text-align: center; color: #555;">
+            点选食物卡放入冰箱，系统自动生成句子：There is / There are。
+        </p>
+
+        <div class="mode-bar teacher-only">
+            <label class="mode-chip"><input type="checkbox" id="big-mode-toggle"> 大字显示（投屏）</label>
+            <label class="mode-chip"><input type="checkbox" id="hide-english-toggle"> 隐藏英文提示（点击揭晓）</label>
+            <label class="mode-chip"><input type="checkbox" id="classroom-lock-toggle"> 课堂锁定（只留核心区）</label>
+        </div>
+
+        <div class="builder-layout">
+            <div class="zone">
+                <h3>食物卡牌</h3>
+                <div class="card-grid" id="food-grid"></div>
+                <p class="helper">点击卡牌即可加入冰箱。</p>
+            </div>
+
+            <div class="zone">
+                <h3>冰箱内容</h3>
+                <div class="fridge-list" id="fridge-list">
+                    <div class="helper">还没有食物，先点一张卡牌吧。</div>
+                </div>
+                <div class="sentence-box" id="sentence-box">There is an apple in the fridge.</div>
+                <div class="teacher-only" style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="pixel-btn" id="reveal-btn" onclick="revealSentence()" style="background-color: #4A5568; color:#FFF; display:none;">揭晓英文句子</button>
+                    <button class="pixel-btn danger" onclick="clearFridge()">清空冰箱</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="unlock-btn" class="unlock-fab" onclick="requestUnlock()">教师解锁</button>
+
+    <script src="app.js"></script>
+    <script>
+        const teachingItems = [
+            { id: 'apple', name: 'apple', img: '../img/apple.png', type: 'countable', article: 'an' },
+            { id: 'banana', name: 'banana', img: '../img/banana.png', type: 'countable', article: 'a' },
+            { id: 'egg', name: 'egg', img: '../img/egg.png', type: 'countable', article: 'an' },
+            { id: 'carrot', name: 'carrot', img: '../img/carrot.png', type: 'countable', article: 'a' },
+            { id: 'milk', name: 'milk', img: '../img/milk.png', type: 'uncountable' },
+            { id: 'juice', name: 'juice', img: '../img/juice.png', type: 'uncountable' },
+            { id: 'water', name: 'water', img: '../img/water.png', type: 'uncountable' },
+            { id: 'bread', name: 'bread', img: '../img/bread.png', type: 'uncountable' },
+            { id: 'rice', name: 'rice', img: '../img/rice.png', type: 'uncountable' }
+        ];
+
+        const fridge = {};
+        let lastAddedId = null;
+        let hideEnglish = false;
+        const UNLOCK_CODE = '416602';
+
+        function pluralize(word) {
+            if (word.endsWith('s')) return word;
+            if (word.endsWith('y')) return word.slice(0, -1) + 'ies';
+            return word + 's';
+        }
+
+        function renderCards() {
+            const grid = document.getElementById('food-grid');
+            grid.innerHTML = '';
+            teachingItems.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'food-card';
+                card.innerHTML = `
+                    <img src="${item.img}" alt="${item.name}" onerror="this.style.display='none'">
+                    <div style="font-family: var(--font-en); font-size: 12px; margin-top: 6px;">${item.name.toUpperCase()}</div>
+                `;
+                card.onclick = () => addFood(item.id);
+                grid.appendChild(card);
+            });
+        }
+
+        function addFood(id) {
+            fridge[id] = (fridge[id] || 0) + 1;
+            lastAddedId = id;
+            renderFridge();
+            renderSentence();
+        }
+
+        function clearFridge() {
+            Object.keys(fridge).forEach(k => delete fridge[k]);
+            lastAddedId = null;
+            renderFridge();
+            document.getElementById('sentence-box').innerText = 'There is an apple in the fridge.';
+        }
+
+        function renderFridge() {
+            const list = document.getElementById('fridge-list');
+            const entries = Object.entries(fridge);
+            if (entries.length === 0) {
+                list.innerHTML = '<div class="helper">还没有食物，先点一张卡牌吧。</div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            entries.forEach(([id, qty]) => {
+                const item = teachingItems.find(i => i.id === id);
+                const row = document.createElement('div');
+                row.className = 'fridge-row';
+                row.textContent = `${item.name} × ${qty}`;
+                list.appendChild(row);
+            });
+        }
+
+        function buildSentence(item, qty) {
+            if (item.type === 'uncountable') {
+                return `There is some ${item.name} in the fridge.`;
+            }
+            if (qty <= 1) {
+                return `There is ${item.article} ${item.name} in the fridge.`;
+            }
+            return `There are some ${pluralize(item.name)} in the fridge.`;
+        }
+
+        function renderSentence() {
+            const entries = Object.entries(fridge);
+            if (entries.length === 0 || !lastAddedId) return;
+
+            const item = teachingItems.find(i => i.id === lastAddedId);
+            const qty = fridge[lastAddedId] || 0;
+            if (!item || qty <= 0) return;
+
+            const sentence = buildSentence(item, qty);
+            const sentenceBox = document.getElementById('sentence-box');
+            const revealBtn = document.getElementById('reveal-btn');
+
+            if (hideEnglish) {
+                sentenceBox.innerText = '请先让学生口头说，再点击“揭晓英文句子”。';
+                sentenceBox.dataset.answer = sentence;
+                revealBtn.style.display = 'inline-block';
+            } else {
+                sentenceBox.innerText = sentence;
+                sentenceBox.dataset.answer = sentence;
+                revealBtn.style.display = 'none';
+            }
+        }
+
+        function revealSentence() {
+            const sentenceBox = document.getElementById('sentence-box');
+            const answer = sentenceBox.dataset.answer;
+            if (answer) sentenceBox.innerText = answer;
+        }
+
+        function setClassroomLock(locked) {
+            document.body.classList.toggle('classroom-lock', locked);
+            const lockToggle = document.getElementById('classroom-lock-toggle');
+            if (lockToggle) lockToggle.checked = locked;
+        }
+
+        function requestUnlock() {
+            const input = prompt('请输入教师解锁口令：');
+            if (input === null) return;
+            if (input.trim() === UNLOCK_CODE) {
+                setClassroomLock(false);
+                alert('已退出课堂锁定。');
+            } else {
+                alert('口令错误，保持锁定。');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderCards();
+
+            document.getElementById('big-mode-toggle').addEventListener('change', (e) => {
+                document.body.classList.toggle('big-mode', e.target.checked);
+            });
+
+            document.getElementById('hide-english-toggle').addEventListener('change', (e) => {
+                hideEnglish = e.target.checked;
+                renderSentence();
+            });
+
+            document.getElementById('classroom-lock-toggle').addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    setClassroomLock(true);
+                } else {
+                    requestUnlock();
+                    if (document.body.classList.contains('classroom-lock')) {
+                        e.target.checked = true;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
